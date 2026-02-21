@@ -74,13 +74,12 @@ def analyze_consultation_text(text: str) -> Dict:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o", # Or gpt-3.5-turbo if cost is a concern, but gpt-4 is better for JSON
+            model="o1",
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "developer", "content": system_prompt},
                 {"role": "user", "content": text}
             ],
             response_format={"type": "json_object"},
-            temperature=0.3,
         )
         
         content = response.choices[0].message.content
@@ -137,13 +136,12 @@ def analyze_judgment(text: str) -> Dict:
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="o1",
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text[:15000]} # Limit context window if needed
+                {"role": "developer", "content": system_prompt},
+                {"role": "user", "content": text[:15000]}
             ],
             response_format={"type": "json_object"},
-            temperature=0.3,
         )
         
         content = response.choices[0].message.content

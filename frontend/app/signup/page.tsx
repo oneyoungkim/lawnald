@@ -12,7 +12,7 @@ export default function SignupPage() {
                 </div>
 
                 <div className="grid gap-4">
-                    <Link href="/signup/user" className="group relative block p-6 border-2 border-neutral-200 dark:border-zinc-800 rounded-2xl hover:border-[#1E293B] dark:hover:border-gray-400 transition-all bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md">
+                    <Link href="/signup/client" className="group relative block p-6 border-2 border-neutral-200 dark:border-zinc-800 rounded-2xl hover:border-[#1E293B] dark:hover:border-gray-400 transition-all bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md">
                         <div className="flex items-center gap-4">
                             <span className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-xl text-2xl group-hover:scale-110 transition-transform">👤</span>
                             <div>

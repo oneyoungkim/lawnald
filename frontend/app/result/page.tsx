@@ -31,6 +31,16 @@ interface Lawyer {
         topic_tags: string[];
     };
     imageUrl?: string;
+    cutoutImageUrl?: string;
+    bgRemoveStatus?: string;
+    practiceScore?: number;
+    analysis_reason?: string;
+    content_items?: any[];
+    content_highlights?: string;
+    phone?: string;
+    homepage?: string;
+    kakao_id?: string;
+    isOnline?: boolean;
 }
 
 interface AnalysisDetails {

@@ -11,6 +11,7 @@ interface BlogImportModalProps {
         cover_image_url: string;
         category: string;
         keyword: string;
+        original_url?: string;
     }) => void;
 }
 
@@ -35,7 +36,10 @@ export default function BlogImportModal({ isOpen, onClose, onImport }: BlogImpor
                 body: JSON.stringify({ url })
             });
 
-            if (!res.ok) throw new Error('불러오기에 실패했습니다. URL을 확인해주세요.');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => null);
+                throw new Error(errData?.detail || '불러오기에 실패했습니다. URL을 확인해주세요.');
+            }
 
             setStatus('AI가 삽화를 그리고 SEO 최적화를 진행 중입니다... (약 20초 소요)');
             const data = await res.json();
@@ -48,7 +52,8 @@ export default function BlogImportModal({ isOpen, onClose, onImport }: BlogImpor
                     content: data.content,
                     cover_image_url: data.cover_image_url,
                     category: data.category,
-                    keyword: data.keyword
+                    keyword: data.keyword,
+                    original_url: data.original_url || url
                 });
                 setLoading(false);
                 onClose(); // Close modal on success
@@ -84,41 +89,42 @@ export default function BlogImportModal({ isOpen, onClose, onImport }: BlogImpor
                                 type="text"
                                 value={url}
                                 onChange={(e) => setUrl(e.target.value)}
-                                placeholder="https://blog.naver.com/..."
+                                placeholder="https://blog.naver.com/blogid/123456789"
                                 className="w-full px-4 py-3.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 focus:ring-2 focus:ring-[#007aff] outline-none transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
                             />
+                            <p className="text-xs text-gray-400 mt-2 ml-1">💡 개별 포스트 URL을 입력해주세요. 대표 블로그 주소(blog.naver.com/아이디)는 지원하지 않습니다.</p>
                             <div className="flex gap-2 mt-3">
                                 <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase">Auto Title</span>
                                 <span className="px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded uppercase">SEO Keyword</span>
                                 <span className="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded uppercase">AI Cover Art</span>
                             </div>
                         </div>
-
-                        {error && (
-                            <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium flex items-center gap-2">
-                                <XMarkIcon className="w-5 h-5" />
-                                {error}
-                            </div>
-                        )}
-
-                        {loading ? (
-                            <div className="flex flex-col items-center justify-center py-8 space-y-4 bg-gray-50 dark:bg-zinc-900 rounded-xl">
-                                <ArrowPathIcon className="w-8 h-8 text-[#007aff] animate-spin" />
-                                <div className="text-center">
-                                    <p className="text-sm font-bold text-[#1d1d1f] dark:text-white mb-1">AI가 분석 중입니다</p>
-                                    <p className="text-xs text-gray-500 animate-pulse">{status}</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={handleImport}
-                                disabled={!url}
-                                className="w-full py-4 bg-[#03C75A] hover:bg-[#02b351] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                                <span>스마트 불러오기 시작</span>
-                            </button>
-                        )}
                     </div>
+
+                    {error && (
+                        <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium flex items-center gap-2">
+                            <XMarkIcon className="w-5 h-5" />
+                            {error}
+                        </div>
+                    )}
+
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4 bg-gray-50 dark:bg-zinc-900 rounded-xl">
+                            <ArrowPathIcon className="w-8 h-8 text-[#007aff] animate-spin" />
+                            <div className="text-center">
+                                <p className="text-sm font-bold text-[#1d1d1f] dark:text-white mb-1">AI가 분석 중입니다</p>
+                                <p className="text-xs text-gray-500 animate-pulse">{status}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleImport}
+                            disabled={!url}
+                            className="w-full py-4 bg-[#03C75A] hover:bg-[#02b351] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <span>스마트 불러오기 시작</span>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

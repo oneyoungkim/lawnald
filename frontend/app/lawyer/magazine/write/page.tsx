@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import LawyerMenu from '../../../components/LawyerMenu';
 import SEOPreCheckModal from '../../../../app/admin/posts/new/SEOPreCheckModal';
 import SEOAssistantPanel from '../../../../components/editor/SEOAssistantPanel';
-import { ChevronLeftIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ArrowDownTrayIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import BlogImportModal from '../../../../components/BlogImportModal';
 
 export default function LawyerWritePage() {
@@ -20,6 +20,10 @@ export default function LawyerWritePage() {
     const [keyword, setKeyword] = useState('');
     const [category, setCategory] = useState('');
     const [purpose, setPurpose] = useState('');
+    const [originalUrl, setOriginalUrl] = useState('');
+
+    // Thumbnail Generation
+    const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
 
     // Analysis Data
     const [analysis, setAnalysis] = useState(null);
@@ -29,10 +33,9 @@ export default function LawyerWritePage() {
         setTitle(data.title);
         setKeyword(data.keyword);
         setCategory(data.category);
-        if (data.purpose) setPurpose(data.purpose); // Optional check
+        if (data.purpose) setPurpose(data.purpose);
         setShowModal(false);
 
-        // Initial Template Insertion based on purpose
         const templates: Record<string, string> = {
             'info': `## 1. ${data.keyword}란 무엇인가?\n\n법적으로 ${data.keyword}은(는)...\n\n## 2. 주요 쟁점과 주의사항\n\n많은 분들이 놓치기 쉬운 부분은...\n\n## 3. 변호사의 조언\n\n이러한 상황에서는...`,
             'case': `## 1. 사건의 개요\n\n의뢰인은 ${data.keyword} 혐의로 입건되어...\n\n## 2. 변호인의 조력\n\n저희 법무법인은...\n\n## 3. 결과 및 의의\n\n결국 재판부는...`,
@@ -40,7 +43,7 @@ export default function LawyerWritePage() {
             'QnA': `## Q1. ${data.keyword} 소송, 얼마나 걸리나요?\n\n통상적으로...\n\n## Q2. 비용은 어떻게 되나요?\n\n사안의 복잡도에 따라...\n\n## Q3. 증거가 부족해도 되나요?\n\n확실한 증거가 없다면...`
         };
 
-        if (!data.content && data.purpose) { // Only set template if content is empty
+        if (!data.content && data.purpose) {
             setContent(templates[data.purpose] || '');
         }
     };
@@ -56,7 +59,8 @@ export default function LawyerWritePage() {
                 setCategory(data.category || '');
                 setKeyword(data.keyword || '');
                 setCoverImage(data.cover_image_url || '');
-                setShowModal(false); // Skip pre-check
+                setOriginalUrl(data.original_url || '');
+                setShowModal(false);
                 localStorage.removeItem('pendingImport');
             } catch (e) {
                 console.error("Failed to parse pending import", e);
@@ -83,7 +87,7 @@ export default function LawyerWritePage() {
             } finally {
                 setIsAnalyzing(false);
             }
-        }, 1000); // 1s debounce
+        }, 1000);
 
         return () => clearTimeout(timer);
     }, [content, title, keyword]);
@@ -99,11 +103,40 @@ export default function LawyerWritePage() {
         setContent(prev => prev + (templates[type] || ''));
     };
 
+    // ── AI 썸네일 생성 (버튼 클릭 시에만 호출) ──
+    const handleGenerateThumbnail = async () => {
+        if (!content || content.trim().length < 30) {
+            alert('썸네일 생성을 위해 최소 30자 이상의 본문을 입력해주세요.');
+            return;
+        }
+
+        setIsGeneratingThumbnail(true);
+        try {
+            const res = await fetch('http://localhost:8000/api/generate-thumbnail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content.slice(0, 1000) })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || '이미지 생성에 실패했습니다.');
+            }
+
+            const data = await res.json();
+            setCoverImage(data.image_url);
+        } catch (error: any) {
+            console.error("Thumbnail generation failed:", error);
+            alert(error.message || '이미지 생성 중 오류가 발생했습니다.');
+        } finally {
+            setIsGeneratingThumbnail(false);
+        }
+    };
+
     const handlePublish = async () => {
         if (!confirm("이 글을 발행하시겠습니까?")) return;
 
         try {
-            // Use existing endpoint for creating magazine content
             const res = await fetch('http://localhost:8000/api/admin/magazine', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -113,13 +146,14 @@ export default function LawyerWritePage() {
                     keyword,
                     category,
                     purpose,
-                    cover_image: coverImage
+                    cover_image: coverImage,
+                    original_url: originalUrl
                 })
             });
 
             if (res.ok) {
                 alert("성공적으로 발행되었습니다!");
-                router.push('/lawyer/magazine'); // Redirect to lawyer magazine list
+                router.push('/lawyer/magazine');
             } else {
                 alert("발행에 실패했습니다. 다시 시도해주세요.");
             }
@@ -146,8 +180,9 @@ export default function LawyerWritePage() {
                     setTitle(data.title);
                     setContent(data.content);
                     setCoverImage(data.cover_image_url);
+                    setOriginalUrl(data.original_url || '');
                     setShowImportModal(false);
-                    setShowModal(false); // Close pre-check if open
+                    setShowModal(false);
                 }}
             />
 
@@ -205,8 +240,90 @@ export default function LawyerWritePage() {
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 placeholder="여기에 내용을 입력하세요..."
-                                className="w-full h-[calc(100vh-300px)] resize-none text-lg text-gray-700 leading-relaxed border-none outline-none bg-transparent"
+                                className="w-full h-[calc(100vh-500px)] resize-none text-lg text-gray-700 leading-relaxed border-none outline-none bg-transparent"
                             />
+
+                            {/* ── AI 썸네일 생성 섹션 ── */}
+                            <div className="mt-8 pt-8 border-t border-gray-100">
+                                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <SparklesIcon className="w-4 h-4" />
+                                    커버 이미지
+                                </h3>
+
+                                {/* 생성 중 로딩 애니메이션 */}
+                                {isGeneratingThumbnail && (
+                                    <div className="rounded-2xl border-2 border-dashed border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-8 mb-4">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="relative w-full max-w-md aspect-[16/9] bg-white rounded-xl overflow-hidden shadow-inner">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/60 to-transparent animate-pulse" />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                        <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+                                                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-sm font-semibold text-blue-700">
+                                                    ✨ AI가 변호사님의 글에 맞는 이미지를 스케치하고 있습니다...
+                                                </p>
+                                                <p className="text-xs text-blue-400 mt-1">
+                                                    약 10~15초 정도 소요됩니다. 잠시만 기다려주세요.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 생성된 이미지 미리보기 */}
+                                {coverImage && !isGeneratingThumbnail && (
+                                    <div className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm mb-4 group">
+                                        <img
+                                            src={coverImage.startsWith('/') ? `http://localhost:8000${coverImage}` : coverImage}
+                                            alt="커버 이미지"
+                                            className="w-full aspect-[16/9] object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                            <button
+                                                onClick={handleGenerateThumbnail}
+                                                className="bg-white/90 backdrop-blur-sm text-gray-900 px-4 py-2 rounded-xl font-semibold text-sm shadow-lg hover:bg-white transition-colors"
+                                            >
+                                                🔄 다시 생성하기
+                                            </button>
+                                        </div>
+                                        <div className="absolute top-3 right-3">
+                                            <button
+                                                onClick={() => setCoverImage('')}
+                                                className="bg-white/80 backdrop-blur-sm text-gray-500 hover:text-red-500 w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-sm transition-colors"
+                                                title="이미지 삭제"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 생성 버튼 */}
+                                {!coverImage && !isGeneratingThumbnail && (
+                                    <button
+                                        onClick={handleGenerateThumbnail}
+                                        disabled={!content || content.trim().length < 30}
+                                        className="w-full py-5 rounded-2xl border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 text-gray-400 hover:text-blue-600 transition-all flex items-center justify-center gap-3 group disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                                    >
+                                        <SparklesIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                        <span className="font-semibold text-sm">
+                                            ✨ AI 썸네일 생성하기
+                                        </span>
+                                    </button>
+                                )}
+
+                                {!coverImage && !isGeneratingThumbnail && (
+                                    <p className="text-xs text-gray-300 text-center mt-2">
+                                        글 내용을 분석하여 브랜드 톤에 맞는 일러스트를 자동 생성합니다
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
 

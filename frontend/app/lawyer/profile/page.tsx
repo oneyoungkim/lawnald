@@ -219,7 +219,7 @@ export default function LawyerProfilePage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold mb-1">전문 분야 (콤마로 구분)</label>
+                            <label className="block text-sm font-bold mb-1">주력 분야 (콤마로 구분)</label>
                             <input type="text" name="expertise" value={formData.expertise} onChange={handleChange} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" placeholder="형사, 이혼, 부동산 등" />
                         </div>
 

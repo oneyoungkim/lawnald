@@ -56,8 +56,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const seo = article.seo;
 
     const canonicalUrl = seo?.canonical || `https://lawnald.com/magazine/${id}`;
-    const metaTitle = seo?.seo_title || `${article.title} - ${article.lawyer_name} 변호사 | Lawnald Magazine`;
-    const metaDesc = seo?.meta_description || `${article.lawyer_name} 변호사의 ${article.type === 'case' ? '승소사례' : '법률칼럼'}: ${article.title}. 전문가의 법률 인사이트를 확인하세요.`;
+    const displayName = article.lawyer_name?.endsWith('변호사') ? article.lawyer_name : `${article.lawyer_name} 변호사`;
+    const metaTitle = seo?.seo_title || `${article.title} - ${displayName} | Lawnald Magazine`;
+    const metaDesc = seo?.meta_description || `${displayName}의 ${article.type === 'case' ? '승소사례' : '법률칼럼'}: ${article.title}. 전문가의 법률 인사이트를 확인하세요.`;
     const ogImage = article.cover_image || (article.lawyer_image ? `http://127.0.0.1:8000${article.lawyer_image}` : 'https://lawnald.com/og-default.png');
 
     return {
@@ -193,7 +194,7 @@ export default async function ArticlePage({ params }: Props) {
                     </h1>
 
                     <div className="flex items-center justify-center gap-3 text-sm text-zinc-500 font-medium">
-                        <span className="text-main font-bold">{article.lawyer_name} 변호사</span>
+                        <span className="text-main font-bold">{article.lawyer_name?.endsWith('변호사') ? article.lawyer_name : `${article.lawyer_name} 변호사`}</span>
                         <span className="text-point">·</span>
                         <span>{article.date}</span>
                     </div>

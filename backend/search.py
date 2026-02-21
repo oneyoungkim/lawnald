@@ -212,13 +212,12 @@ class SearchEngine:
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="o1",
                 messages=[
-                    {"role": "system", "content": system_prompt},
+                    {"role": "developer", "content": system_prompt},
                     {"role": "user", "content": query}
                 ],
-                temperature=0.1, # Low temperature for consistent classification
-                max_tokens=500
+                max_completion_tokens=500
             )
             content = response.choices[0].message.content.strip()
             # Clean up potential markdown formatting

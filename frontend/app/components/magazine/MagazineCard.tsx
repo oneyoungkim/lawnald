@@ -127,7 +127,7 @@ export default function MagazineCard({ article, index }: MagazineCardProps) {
                                     )}
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="font-semibold text-[#1d1d1f]">{article.lawyer_name} 변호사</span>
+                                    <span className="font-semibold text-[#1d1d1f]">{article.lawyer_name?.endsWith('변호사') ? article.lawyer_name : `${article.lawyer_name} 변호사`}</span>
                                     <span className="text-xs text-gray-400">{article.date}</span>
                                 </div>
                             </div>

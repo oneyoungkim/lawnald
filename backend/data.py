@@ -301,6 +301,13 @@ def load_lawyers_db():
             "언제든 편하게 상담 문의 주세요."
         ),
         # --- Custom Blog Settings ---
+        # --- 테스트 계정: 평생 무료 구독 ---
+        "is_subscribed": True,
+        "is_founder": True,
+        "subscription_plan": "lifetime_free",
+        "trial_ends_at": None,
+        "billing_key": None,
+        # --- Custom Blog Settings ---
         "blog_theme": {
             "primaryColor": "#0F172A",
             "secondaryColor": "#E2E8F0", 

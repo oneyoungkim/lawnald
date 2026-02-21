@@ -67,8 +67,102 @@ async def get_chat_history(lawyer_id: str, client_id: str):
 async def get_lawyer_chats(lawyer_id: str):
     return chat_manager.get_lawyer_chats(lawyer_id)
 
-from routers import crawler
-app.include_router(crawler.router)
+from routers.crawler import parse_naver_blog_url, get_blog_text, rewrite_with_llm, generate_cover_image
+# NOTE: crawler.router NOT included to avoid stale async endpoint conflict
+
+# 블로그 불러오기 엔드포인트
+class BlogImportRequest(BaseModel):
+    url: str
+
+@app.post("/api/blog/import")
+def blog_import_endpoint(request: BlogImportRequest):
+    import traceback as tb
+    try:
+        blog_id, log_no = parse_naver_blog_url(request.url)
+        if not blog_id or not log_no:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=400, content={"detail": "잘못된 네이버 블로그 URL 형식입니다. 개별 포스트 URL을 입력해주세요."})
+        
+        # ── 중복 URL 체크 (비용 낭비 방지: LLM/DALL-E 호출 전에 확인) ──
+        canonical_url = f"https://blog.naver.com/{blog_id}/{log_no}"
+        for lawyer in LAWYERS_DB:
+            for item in lawyer.get("content_items", []):
+                existing_url = item.get("original_url", "")
+                if existing_url and (canonical_url in existing_url or existing_url in canonical_url or existing_url == request.url):
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(status_code=409, content={"detail": f"이미 등록된 블로그 글입니다. (등록일: {item.get('date', '알 수 없음')})"})
+        
+        print(f"[BlogImport] Crawling: {blog_id}/{log_no}")
+        original_title, original_text = get_blog_text(blog_id, log_no)
+        
+        if not original_text or len(original_text.strip()) < 50:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=400, content={"detail": "블로그 글 내용을 추출할 수 없습니다. 비공개 글이거나 내용이 너무 짧습니다."})
+        
+        print(f"[BlogImport] Got {len(original_text)} chars. LLM rewriting with SEO...")
+        llm_result = rewrite_with_llm(original_text)
+        
+        print(f"[BlogImport] LLM done. Generating illustration image...")
+        content_for_image = llm_result.get("content", "")[:1000]
+        cover_image = generate_cover_image(content_for_image)
+        
+        # Embed generated image into content body (replace [IMAGE] placeholder)
+        content = llm_result.get("content", original_text)
+        if "[IMAGE]" in content:
+            image_md = f"\n\n![관련 삽화]({cover_image})\n\n"
+            content = content.replace("[IMAGE]", image_md, 1)
+            print(f"[BlogImport] ✅ Image embedded into content body")
+        else:
+            # If LLM didn't place [IMAGE], insert after the first heading
+            import re
+            heading_match = re.search(r'(^##?\s+.+$)', content, re.MULTILINE)
+            if heading_match:
+                insert_pos = heading_match.end()
+                # Find the next paragraph break
+                next_para = content.find('\n\n', insert_pos)
+                if next_para != -1:
+                    image_md = f"\n\n![관련 삽화]({cover_image})\n\n"
+                    content = content[:next_para] + image_md + content[next_para:]
+                    print(f"[BlogImport] ✅ Image inserted after first section")
+        
+        print(f"[BlogImport] ✅ Complete! (SEO title: {llm_result.get('title', '')[:40]}...)")
+        return {
+            "title": llm_result.get("title", original_title),
+            "content": content,
+            "category": llm_result.get("category", "기타"),
+            "keyword": llm_result.get("keyword", ""),
+            "cover_image_url": cover_image,
+            "original_url": request.url,
+            "meta_description": llm_result.get("meta_description", ""),
+            "slug": llm_result.get("slug", "")
+        }
+    except Exception as e:
+        print(f"[BlogImport] ❌ ERROR: {e}")
+        tb.print_exc()
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=500, content={"detail": f"블로그 불러오기 중 오류: {str(e)}"})
+
+# ── 온디맨드 AI 썸네일 생성 (변호사가 버튼 클릭 시에만 호출) ──
+class ThumbnailRequest(BaseModel):
+    content: str  # 글 본문 (테마 추출용)
+
+@app.post("/api/generate-thumbnail")
+def generate_thumbnail_endpoint(request: ThumbnailRequest):
+    """변호사가 [✨ AI 썸네일 생성하기] 버튼을 클릭했을 때만 호출됩니다."""
+    try:
+        if not request.content or len(request.content.strip()) < 30:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=400, content={"detail": "썸네일 생성을 위해 최소 30자 이상의 본문이 필요합니다."})
+        
+        print(f"[Thumbnail] 🎨 Generating on-demand thumbnail ({len(request.content)} chars)...")
+        image_url = generate_cover_image(request.content[:1000])
+        print(f"[Thumbnail] ✅ Done: {image_url}")
+        
+        return {"image_url": image_url}
+    except Exception as e:
+        print(f"[Thumbnail] ❌ ERROR: {e}")
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=500, content={"detail": f"이미지 생성 실패: {str(e)}"})
 
 try:
     from backend.billing import router as billing_router
@@ -87,6 +181,24 @@ try:
 except ImportError:
     from push_notifications import router as push_router
 app.include_router(push_router)
+
+try:
+    from backend.document_generator import router as docgen_router
+except ImportError:
+    from document_generator import router as docgen_router
+app.include_router(docgen_router)
+
+try:
+    from backend.evidence_processor import router as evidence_router
+except ImportError:
+    from evidence_processor import router as evidence_router
+app.include_router(evidence_router)
+
+try:
+    from backend.case_workspace import router as workspace_router
+except ImportError:
+    from case_workspace import router as workspace_router
+app.include_router(workspace_router)
 
 print("\n" + "="*50)
 print("STARTUP: Main.py loaded successfully")
@@ -228,6 +340,39 @@ def client_register(request: ClientRegisterRequest):
     CLIENTS_DB.append(new_user)
     return {"message": "Registration successful", "user": new_user}
 
+
+# ── Social Login (Kakao / Naver) ──────────────────────────────
+class SocialLoginRequest(BaseModel):
+    provider: str       # "kakao" | "naver"
+    social_id: str      # 소셜 플랫폼 고유 ID
+    name: str           # 닉네임 또는 이름
+    email: Optional[str] = None  # 이메일 (선택)
+
+@app.post("/api/auth/social/login")
+def social_login(request: SocialLoginRequest):
+    """카카오/네이버 간편 로그인/가입 — 소셜 ID로 기존 유저 매칭 또는 신규 생성"""
+    # 1. 기존 유저 매칭 (social_id 또는 email)
+    for user in CLIENTS_DB:
+        if user.get("social_id") == request.social_id and user.get("provider") == request.provider:
+            return {"message": "Login successful", "user": user, "is_new": False}
+        if request.email and user.get("email") == request.email:
+            # 이메일이 같은 기존 유저에 소셜 정보 연동
+            user["social_id"] = request.social_id
+            user["provider"] = request.provider
+            return {"message": "Login successful", "user": user, "is_new": False}
+
+    # 2. 신규 유저 자동 가입
+    new_user = {
+        "id": f"client_{len(CLIENTS_DB)+1}",
+        "email": request.email or f"{request.provider}_{request.social_id}@social.local",
+        "password": "",
+        "name": request.name,
+        "provider": request.provider,
+        "social_id": request.social_id,
+    }
+    CLIENTS_DB.append(new_user)
+    return {"message": "Registration successful", "user": new_user, "is_new": True}
+
 # --- Lead Notification System ---
 
 class LeadModel(BaseModel):
@@ -270,6 +415,72 @@ def get_lawyer_leads(lawyer_id: str):
     leads = [l for l in LEADS_DB if l["lawyer_id"] == lawyer_id]
     leads.sort(key=lambda x: x["timestamp"], reverse=True)
     return leads
+
+# --- Client Dashboard APIs ---
+
+# 의뢰인 사연 저장 DB
+CLIENT_STORIES_DB = []
+
+class ClientStoryRequest(BaseModel):
+    client_id: str
+    title: str
+    content: str
+    area: Optional[str] = None
+
+@app.post("/api/client/stories")
+def save_client_story(request: ClientStoryRequest):
+    story = {
+        "id": str(uuid4()),
+        "client_id": request.client_id,
+        "title": request.title,
+        "content": request.content,
+        "area": request.area or "미분류",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "status": "접수완료"
+    }
+    CLIENT_STORIES_DB.append(story)
+    return {"message": "사연이 저장되었습니다.", "story": story}
+
+@app.get("/api/client/{client_id}/stories")
+def get_client_stories(client_id: str):
+    stories = [s for s in CLIENT_STORIES_DB if s["client_id"] == client_id]
+    stories.sort(key=lambda x: x["created_at"], reverse=True)
+    return stories
+
+@app.get("/api/client/{client_id}/chats")
+def get_client_chats(client_id: str):
+    from chat import chat_manager
+    chat_manager.load_chats()
+    chats = []
+    for session in chat_manager.sessions.values():
+        if session.client_id == client_id:
+            # Find lawyer name
+            lawyer = next((l for l in LAWYERS_DB if l["id"] == session.lawyer_id), None)
+            chat_data = session.to_dict()
+            chat_data["lawyer_name"] = lawyer["name"] if lawyer else "알 수 없음"
+            chat_data["lawyer_firm"] = lawyer.get("firm", "") if lawyer else ""
+            chat_data["lawyer_image"] = lawyer.get("imageUrl") if lawyer else None
+            chats.append(chat_data)
+    chats.sort(key=lambda x: x["last_updated"], reverse=True)
+    return chats
+
+@app.get("/api/lawyers/online")
+def get_online_lawyers():
+    from chat import presence_manager
+    online = []
+    for lawyer in LAWYERS_DB:
+        status = presence_manager.get_status(lawyer["id"])
+        if status in ("online", "away"):
+            online.append({
+                "id": lawyer["id"],
+                "name": lawyer["name"],
+                "firm": lawyer.get("firm", ""),
+                "expertise": lawyer.get("expertise", []),
+                "imageUrl": lawyer.get("imageUrl"),
+                "status": status,
+                "location": lawyer.get("location", "")
+            })
+    return online
 
 # --- SEO Analysis Endpoints ---
 from seo_helper import seo_helper
@@ -363,6 +574,7 @@ class MagazineCreateRequest(BaseModel):
     category: str
     purpose: str
     cover_image: Optional[str] = None
+    original_url: Optional[str] = None
 
 @app.post("/api/admin/magazine")
 def create_magazine_post(request: MagazineCreateRequest):
@@ -372,23 +584,40 @@ def create_magazine_post(request: MagazineCreateRequest):
     
     if not lawyer:
         lawyer = LAWYERS_DB[0] # Fallback
+
+    # Infer topic_tags from category/keyword for recommendation algorithm scoring
+    topic_tags = []
+    category_tag_map = {
+        "가사": ["가사법"], "이혼": ["가사법"], "상속": ["가사법"],
+        "형사": ["형사법"], "성범죄": ["형사법"], "교통": ["형사법"],
+        "부동산": ["부동산법"], "임대차": ["부동산법"], "전세": ["부동산법"],
+        "민사": ["민사법"], "손해배상": ["민사법"], "채권": ["민사법"],
+        "행정": ["행정법"], "노동": ["노동법"], "세금": ["조세법"],
+        "의료": ["의료법"], "기업": ["민사법"],
+    }
+    for kw, tags in category_tag_map.items():
+        if kw in request.category or kw in request.keyword:
+            topic_tags.extend(tags)
+    if not topic_tags:
+        topic_tags = [request.category]  # Fallback to category itself
         
     new_item = {
         "id": str(uuid4()),
         "type": "column", # Default to column
         "title": request.title,
-        "content": request.content, # For simple display if needed logic differs
-        "content_markdown": request.content, # Store as markdown
+        "content": request.content,
+        "content_markdown": request.content,
         "tags": [request.keyword],
+        "topic_tags": topic_tags,  # For recommendation algorithm scoring
         "category": request.category,
         "purpose": request.purpose,
         "date": datetime.now().strftime("%Y-%m-%d"),
         "view_count": 0,
         "cover_image": request.cover_image or "/images/pattern_1.jpg", 
+        "original_url": request.original_url or "",
         "summary": request.content[:200] + "...",
-        "slug": request.title.replace(" ", "-"), # Simple slug
-        "verified": True, # Auto-publish for admin
-        # SEO Fields
+        "slug": request.title.replace(" ", "-"),
+        "verified": True,
         "seo": {
             "target_keyword": request.keyword,
             "purpose": request.purpose,
@@ -405,6 +634,22 @@ def create_magazine_post(request: MagazineCreateRequest):
         
     lawyer["content_items"].insert(0, new_item)
     save_lawyers_db(LAWYERS_DB)
+    
+    # 검색 인덱스에 즉시 추가 (변호사 추천 알고리즘 점수 반영)
+    try:
+        from search import search_engine
+        text = f"{new_item['title']} {new_item['summary']}"
+        embedding = search_engine._get_embedding(text)
+        import numpy as np
+        if len(search_engine.corpus_embeddings) > 0:
+            search_engine.corpus_embeddings = np.vstack([search_engine.corpus_embeddings, embedding])
+        else:
+            search_engine.corpus_embeddings = np.array([embedding])
+        content_idx = len(lawyer["content_items"]) - 1
+        search_engine.mapping.append({"lawyer_id": lawyer["id"], "type": "content", "index": 0})
+        print(f"✅ 블로그/매거진 콘텐츠가 추천 알고리즘 인덱스에 추가됨: {new_item['title']}")
+    except Exception as e:
+        print(f"⚠️ 인덱스 업데이트 실패 (추후 재시작 시 반영): {e}")
     
     return {"message": "Post created successfully", "id": new_item["id"]}
 

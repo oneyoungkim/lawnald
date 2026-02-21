@@ -231,7 +231,12 @@ async def get_subscription_status(lawyer_id: str):
     days_remaining = get_trial_days_remaining(lawyer)
     has_billing_key = bool(lawyer.get("billing_key"))
 
-    if is_founder and is_trial_active(lawyer):
+    # 평생 무료 구독 (테스트 계정)
+    if lawyer.get("subscription_plan") == "lifetime_free":
+        plan_name = "평생 무료 구독"
+        monthly_price = 0
+        days_remaining = 9999
+    elif is_founder and is_trial_active(lawyer):
         plan_name = "파운딩 멤버 무료 체험"
         monthly_price = 0
     elif is_founder:

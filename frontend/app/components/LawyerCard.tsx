@@ -72,6 +72,7 @@ function Counter({ value }: { value: number }) {
 
 export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, query?: string }) {
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
     let displayImage = lawyer.cutoutImageUrl || lawyer.imageUrl;
 
     // Fallback if no image provided from backend
@@ -99,6 +100,24 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
             console.log("Lead reported:", type);
         } catch (error) {
             console.error("Failed to report lead:", error);
+        }
+    };
+
+    // 📞 전화 상담 핸들러: 모바일이면 바로 전화, 웹이면 번호 표시
+    const handlePhoneClick = () => {
+        if (!lawyer.phone) return;
+        handleContactClick("phone");
+
+        const isMobile = typeof window !== 'undefined' && (
+            'ontouchstart' in window ||
+            navigator.maxTouchPoints > 0 ||
+            window.innerWidth < 768
+        );
+
+        if (isMobile) {
+            window.location.href = `tel:${lawyer.phone}`;
+        } else {
+            setShowPhoneModal(true);
         }
     };
 
@@ -264,6 +283,37 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                     </div>
                 </motion.div>
 
+                {/* 🟢 Online: Real-time Chat Available Banner */}
+                {lawyer.isOnline && (
+                    <motion.div
+                        className="mt-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-4 border border-emerald-200/60 dark:border-emerald-700/40"
+                        variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { delay: 0.3 } }, dimmed: { opacity: 0.6 } }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 dark:bg-emerald-800/40 rounded-full flex items-center justify-center">
+                                <span className="relative flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+                                    현재 접속 중 · 즉시 상담 가능
+                                </p>
+                                <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">
+                                    지금 바로 실시간 채팅으로 사건을 상담할 수 있습니다
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsChatOpen(true)}
+                                className="flex-shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-emerald-200 dark:shadow-none"
+                            >
+                                💬 즉시 채팅
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* Contact Actions (Subtle) */}
                 <motion.div
                     className="flex gap-3 mt-8"
@@ -287,7 +337,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                     <div className="flex gap-2">
                         {lawyer.phone && (
                             <button
-                                onClick={() => handleContactClick("phone")}
+                                onClick={handlePhoneClick}
                                 className="w-12 h-full flex items-center justify-center bg-white border border-point/20 hover:bg-point/5 rounded-xl transition-colors tooltip-trigger"
                                 aria-label="전화 상담"
                             >
@@ -325,6 +375,53 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                 isOpen={isChatOpen}
                 onClose={() => setIsChatOpen(false)}
             />
+
+            {/* 📞 전화번호 모달 (데스크톱) */}
+            {showPhoneModal && lawyer.phone && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setShowPhoneModal(false)}>
+                    <div className="bg-white dark:bg-[#2c2c2e] rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <PhoneIcon className="w-7 h-7 text-emerald-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                {lawyer.name?.endsWith('변호사') ? lawyer.name : `${lawyer.name} 변호사`}
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-6">전화 상담 연결</p>
+
+                            <div className="bg-gray-50 dark:bg-[#1c1c1e] rounded-2xl p-5 mb-6">
+                                <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-wider font-mono">
+                                    {lawyer.phone}
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(lawyer.phone || '');
+                                        alert('전화번호가 복사되었습니다.');
+                                    }}
+                                    className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold text-sm transition-colors"
+                                >
+                                    📋 번호 복사
+                                </button>
+                                <a
+                                    href={`tel:${lawyer.phone}`}
+                                    className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-sm transition-colors text-center"
+                                >
+                                    📞 전화 걸기
+                                </a>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowPhoneModal(false)}
+                            className="w-full py-4 border-t border-gray-100 dark:border-zinc-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm font-medium transition-colors"
+                        >
+                            닫기
+                        </button>
+                    </div>
+                </div>
+            )}
         </motion.div>
     );
 }

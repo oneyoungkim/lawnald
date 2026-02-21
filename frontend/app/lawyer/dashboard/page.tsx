@@ -385,18 +385,30 @@ function LawyerDashboardContent() {
                             <h3 className="text-sm font-semibold text-[#86868b] mb-4 uppercase tracking-wide">도움말</h3>
                             <ul className="space-y-4 text-sm text-[#1d1d1f] dark:text-gray-300 font-medium">
                                 <li>
-                                    <Link href="#" className="hover:text-[#007aff] transition-colors flex items-center justify-between group">
-                                        승소사례 작성 가이드 <span className="text-gray-300 group-hover:text-[#007aff] transition-colors">→</span>
+                                    <Link href="/lawyer/help/case-guide" className="hover:text-[#007aff] transition-colors flex items-center justify-between group">
+                                        <span className="flex items-center gap-2">
+                                            <span className="text-base">📝</span>
+                                            승소사례, 이렇게 쓰면 의뢰인이 먼저 연락합니다
+                                        </span>
+                                        <span className="text-gray-300 group-hover:text-[#007aff] transition-colors">→</span>
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="#" className="hover:text-[#007aff] transition-colors flex items-center justify-between group">
-                                        프로필 노출 높이는 법 <span className="text-gray-300 group-hover:text-[#007aff] transition-colors">→</span>
+                                    <Link href="/lawyer/help/profile-boost" className="hover:text-[#007aff] transition-colors flex items-center justify-between group">
+                                        <span className="flex items-center gap-2">
+                                            <span className="text-base">🚀</span>
+                                            AI 추천 순위를 높이는 5가지 핵심 전략
+                                        </span>
+                                        <span className="text-gray-300 group-hover:text-[#007aff] transition-colors">→</span>
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="#" className="hover:text-[#007aff] transition-colors flex items-center justify-between group">
-                                        고객센터 문의하기 <span className="text-gray-300 group-hover:text-[#007aff] transition-colors">→</span>
+                                    <Link href="/lawyer/help/faq" className="hover:text-[#007aff] transition-colors flex items-center justify-between group">
+                                        <span className="flex items-center gap-2">
+                                            <span className="text-base">❓</span>
+                                            자주 묻는 질문 (FAQ)
+                                        </span>
+                                        <span className="text-gray-300 group-hover:text-[#007aff] transition-colors">→</span>
                                     </Link>
                                 </li>
                             </ul>

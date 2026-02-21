@@ -29,7 +29,7 @@ export default function MagazineChatSection({ lawyerId, lawyerName }: MagazineCh
                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                         </span>
                     </div>
-                    <span>{lawyerName} 변호사와 1:1 상담하기</span>
+                    <span>{lawyerName?.endsWith('변호사') ? lawyerName : `${lawyerName} 변호사`}와 1:1 상담하기</span>
                 </button>
                 <div className="mt-3 text-xs text-zinc-400">
                     * 실시간으로 답변을 받으실 수 있습니다.

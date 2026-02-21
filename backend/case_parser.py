@@ -88,10 +88,9 @@ class CaseParser:
                 """
                 
                 response = openai_client.chat.completions.create(
-                    model="gpt-4o",
+                    model="o1",
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"},
-                    temperature=0.3
                 )
                 content = response.choices[0].message.content
                 import json

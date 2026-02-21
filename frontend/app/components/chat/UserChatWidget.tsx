@@ -105,7 +105,7 @@ export default function UserChatWidget({ lawyerId, lawyerName, isOpen, onClose }
                         {lawyerName.slice(0, 1)}
                     </div>
                     <div>
-                        <div className="text-sm font-bold">{lawyerName} 변호사</div>
+                        <div className="text-sm font-bold">{lawyerName?.endsWith('변호사') ? lawyerName : `${lawyerName} 변호사`}</div>
                         <div className="text-[10px] text-white/70 flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-400' : 'bg-gray-400'}`}></span>
                             {isConnected ? '답변 가능' : '연결 끊김'}
