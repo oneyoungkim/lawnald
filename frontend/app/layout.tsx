@@ -27,12 +27,12 @@ export const metadata: Metadata = {
     description: "유사 사건 경험과 실제 사건 기록을 기준으로 변호사를 추천합니다.",
   },
   icons: {
-    icon: "/icon-v2.png",
-    shortcut: "/icon-v2.png",
-    apple: "/icon-v2.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
     other: {
       rel: "apple-touch-icon-precomposed",
-      url: "/icon-v2.png",
+      url: "/favicon.png",
     },
   },
 };
