@@ -1,0 +1,19 @@
+C:\Users\incbc\.gemini\antigravity\scratch\lawnald\backend\main.py:403: FastAPIDeprecationWarning: `regex` has been deprecated, please use `pattern` instead
+  def update_draft_status(draft_id: str, status: str = Query(..., regex="^(published|rejected)$")):
+Loaded 1 chat sessions.
+Lazy loading embeddings... Call refresh_index() manually if needed.
+Loaded 101 lawyers from lawyers_db.json
+Initializing Search Engine...
+Loading embeddings from cache...
+Loaded 1101 embeddings.
+Testing Blog Flow...
+Checking Lawyer: 권혜진 (lawyer-1)
+Found Post: {'id': 'content-4257', 'type': 'blog', 'title': '성범죄 혐의, 초기 대응이 중요합니다', 'topic_tags': ['형사법'], 'verified': True, 'date': '2025-01-01', 'url': 'https://example.com'}
+Slug: None
+SEO Title: None
+Traceback (most recent call last):
+  File "C:\Users\incbc\.gemini\antigravity\scratch\lawnald\backend\test_blog_flow.py", line 75, in <module>
+    test_blog_flow()
+  File "C:\Users\incbc\.gemini\antigravity\scratch\lawnald\backend\test_blog_flow.py", line 34, in test_blog_flow
+    assert post.get("slug"), f"Slug is missing in post: {post}"
+AssertionError: Slug is missing in post: {'id': 'content-4257', 'type': 'blog', 'title': '성범죄 혐의, 초기 대응이 중요합니다', 'topic_tags': ['형사법'], 'verified': True, 'date': '2025-01-01', 'url': 'https://example.com'}

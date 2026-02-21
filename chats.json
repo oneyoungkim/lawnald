@@ -1,0 +1,235 @@
+{
+  "welder49264@naver.com_test_client": {
+    "lawyer_id": "welder49264@naver.com",
+    "client_id": "test_client",
+    "messages": [
+      {
+        "sender": "user",
+        "content": "Hello",
+        "timestamp": "2026-02-19 03:17:39"
+      },
+      {
+        "sender": "user",
+        "content": "Hello from User",
+        "timestamp": "2026-02-19 03:22:13"
+      },
+      {
+        "sender": "lawyer",
+        "content": "Hello from Lawyer",
+        "timestamp": "2026-02-19 03:22:13"
+      }
+    ],
+    "last_updated": "2026-02-19 03:22:13"
+  },
+  "welder49264@naver.com_329a0667-124f-4981-9245-9f9b684ad262": {
+    "lawyer_id": "welder49264@naver.com",
+    "client_id": "329a0667-124f-4981-9245-9f9b684ad262",
+    "messages": [
+      {
+        "sender": "user",
+        "content": "테스트테스트",
+        "timestamp": "2026-02-19 03:20:47"
+      },
+      {
+        "sender": "user",
+        "content": "테스트테스트",
+        "timestamp": "2026-02-19 03:25:58"
+      },
+      {
+        "sender": "user",
+        "content": "태스트테스트",
+        "timestamp": "2026-02-19 18:25:59"
+      },
+      {
+        "sender": "user",
+        "content": "아",
+        "timestamp": "2026-02-19 18:27:22"
+      },
+      {
+        "sender": "user",
+        "content": "아대답좀",
+        "timestamp": "2026-02-19 18:27:24"
+      },
+      {
+        "sender": "user",
+        "content": "아뭐함",
+        "timestamp": "2026-02-19 18:27:34"
+      },
+      {
+        "sender": "user",
+        "content": "사건안받음?",
+        "timestamp": "2026-02-19 18:27:37"
+      },
+      {
+        "sender": "user",
+        "content": "테스트테스트",
+        "timestamp": "2026-02-19 18:38:03"
+      },
+      {
+        "sender": "user",
+        "content": "테스트테스트",
+        "timestamp": "2026-02-19 23:31:19"
+      },
+      {
+        "sender": "user",
+        "content": "SSXXX",
+        "timestamp": "2026-02-19 23:36:44"
+      },
+      {
+        "sender": "user",
+        "content": "테스트테스트",
+        "timestamp": "2026-02-19 23:40:02"
+      },
+      {
+        "sender": "user",
+        "content": "테스트테스트",
+        "timestamp": "2026-02-19 23:49:38"
+      },
+      {
+        "sender": "user",
+        "content": "XPTMXMXPTMXM",
+        "timestamp": "2026-02-19 23:59:17"
+      },
+      {
+        "sender": "lawyer",
+        "content": "DKSSUDGKTPDY",
+        "timestamp": "2026-02-19 23:59:44"
+      },
+      {
+        "sender": "user",
+        "content": "GDGD",
+        "timestamp": "2026-02-19 23:59:52"
+      },
+      {
+        "sender": "user",
+        "content": "ASFAD",
+        "timestamp": "2026-02-20 00:02:46"
+      },
+      {
+        "sender": "user",
+        "content": "안녕하세요",
+        "timestamp": "2026-02-20 00:04:15"
+      },
+      {
+        "sender": "user",
+        "content": "ㅁㄴㅇㅁㄴㅇ",
+        "timestamp": "2026-02-20 00:08:11"
+      },
+      {
+        "sender": "user",
+        "content": "ㅁㄴㅇㅁㄴㅇ",
+        "timestamp": "2026-02-20 00:08:27"
+      },
+      {
+        "sender": "user",
+        "content": "ㅁㄴㅇㄻㄴㄻㄴㄹ",
+        "timestamp": "2026-02-20 00:10:26"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:17:23"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:17:33"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:19:21"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:20:04"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇㅎ",
+        "timestamp": "2026-02-20 00:22:04"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:24:34"
+      },
+      {
+        "sender": "user",
+        "content": "ㅇㅇ",
+        "timestamp": "2026-02-20 00:24:55"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:30:18"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:30:28"
+      },
+      {
+        "sender": "user",
+        "content": "안녕하세요",
+        "timestamp": "2026-02-20 00:32:45"
+      },
+      {
+        "sender": "user",
+        "content": "ㅁㅎㅇㅎ",
+        "timestamp": "2026-02-20 00:38:13"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㄶㄴㅇㅎ",
+        "timestamp": "2026-02-20 00:38:29"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 01:26:51"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 01:34:36"
+      },
+      {
+        "sender": "user",
+        "content": "ㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 01:38:49"
+      },
+      {
+        "sender": "lawyer",
+        "content": "ㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 01:38:58"
+      }
+    ],
+    "last_updated": "2026-02-20 01:38:58"
+  },
+  "welder49264@naver.com_test_chat_001": {
+    "lawyer_id": "welder49264@naver.com",
+    "client_id": "test_chat_001",
+    "messages": [
+      {
+        "sender": "lawyer",
+        "content": "ㅎㅇㅎㅇㅎㅇ",
+        "timestamp": "2026-02-20 00:24:51"
+      }
+    ],
+    "last_updated": "2026-02-20 00:24:51"
+  },
+  "welder49264@naver.com_debug_session_002": {
+    "lawyer_id": "welder49264@naver.com",
+    "client_id": "debug_session_002",
+    "messages": [
+      {
+        "sender": "lawyer",
+        "content": "이제 뜨네 ㅅㅂ",
+        "timestamp": "2026-02-20 01:38:39"
+      }
+    ],
+    "last_updated": "2026-02-20 01:38:39"
+  }
+}

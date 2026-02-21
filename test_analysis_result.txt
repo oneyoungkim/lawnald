@@ -1,0 +1,31 @@
+Warning: OPENAI_API_KEY not found in environment. Using fallback key.
+Lazy loading embeddings... Call refresh_index() manually if needed.
+Initializing SearchEngine...
+Warning: OPENAI_API_KEY not found in environment. Using fallback key.
+Lazy loading embeddings... Call refresh_index() manually if needed.
+Testing query: 이혼하고 싶은데 남편이 재산을 숨기고 있어요. 아이 양육권도 가져오고 싶습니다.
+Calling analyze_query directly...
+Analysis result:
+{
+  "primary_area": "가사",
+  "secondary_area": null,
+  "confidence": 0.9,
+  "key_issues": [
+    "이혼 절차",
+    "재산 분할",
+    "재산 은닉",
+    "양육권",
+    "양육비",
+    "법적 대리인 선임"
+  ],
+  "summary_for_matching": "사용자는 이혼을 원하며 남편이 재산을 숨기고 있다고 주장하고 있습니다. 또한 아이의 양육권을 확보하고 싶어합니다. 이로 인해 재산 분할과 양육권 문제에 대한 법적 조언이 필요합니다.",
+  "case_nature": "이혼 소송 및 재산분할 청구",
+  "category": "가사 > 이혼 및 위자료",
+  "core_risk": "상대방의 재산 은닉 위험",
+  "time_strategy": "재산 은닉을 방지하기 위해 즉시 법적 조치를 취할 필요가 있음.",
+  "urgency": "높음 (빠른 대응 필요)",
+  "procedure": "이혼 소송 및 재산 분할을 위한 조정 절차를 거쳐 소송 진행 예상, 약 6개월~1년 소요.",
+  "necessity_score": 85,
+  "cost_range": "착수금 300~500만원, 성공보수 별도. 이는 추정치입니다."
+}
+SUCCESS: All new fields present.

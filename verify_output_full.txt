@@ -1,0 +1,23 @@
+1. Testing PDF Upload...
+Using PDF: backend/backend/uploads/cases/welder49264@naver.com/de316932-b074-4576-8913-94922bee4957.pdf
+Upload Success!
+Extracted Title: None
+Upload Response Keys: ['case_number', 'court', 'full_text', 'facts', 'issues', 'reasoning', 'conclusion', 'decision', 'client_story', 'ai_tags', 'summary', 'file_hash', 'risk_flags', 'ocr_quality_score', 'ocr_status']
+Full Upload Response: {
+  "case_number": "2025나206374",
+  "court": "법원",
+  "full_text": "개이적보유춤주의 제춤자:채독수. 속달물 득재임시:2025.11.14 11:24. 춤력자:이적도. 다운로드임시:2025.11.14 13:28\n서 울 고 등 법 원\n제 1 4 - 2 민사부\n결\n판\n사 건 2025나2***** 관리비\n원고，피항소인 [별지 1] 원고들 명단 기재와 같다（이학률 외 39인）.\n원고들 소송대리인 변호사 이동희\n피고，항소인 1. 등명종합건설 주식회사\n대표이사 김해현\n2. 등명산업개발 주식회사\n대표이사 안택순\n피고들 주소 서울 강서구 강서로 466, 제4층 제402호（등촌동，우\n리 벤처타운）\n피고들 소송대리인 법무법인 백양\n담당변호사 안정은，이정도\n제 1 심판 결 서울남부지방법원 2025. 1. 23. 선고 2023가합****** 판결\n변론 종결 2025. 9. 18.\n판결선 고 2025. 11. 13.\n주 무\...
+Facts length: 0
+Facts content: ''
+Issues length: 0
+!!! VERIFICATION FAILED: Facts field is empty or too short !!!
+
+2. Publishing Case...
+Publish Success!
+{
+  "status": "published",
+  "slug": "형사사건-Issues---승소-20260217"
+}
+
+3. Verifying in Lawyer DB...
+No cases found in DB!

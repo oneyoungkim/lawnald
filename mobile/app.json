@@ -1,0 +1,50 @@
+{
+    "expo": {
+        "name": "LAWNALD",
+        "slug": "lawnald",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "scheme": "lawnald",
+        "userInterfaceStyle": "dark",
+        "newArchEnabled": true,
+        "splash": {
+            "image": "./assets/splash.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#070b14"
+        },
+        "ios": {
+            "supportsTablet": false,
+            "bundleIdentifier": "com.lawnald.app",
+            "infoPlist": {
+                "NSMicrophoneUsageDescription": "음성으로 사연을 입력하기 위해 마이크 접근이 필요합니다.",
+                "NSSpeechRecognitionUsageDescription": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다."
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#070b14"
+            },
+            "package": "com.lawnald.app",
+            "permissions": [
+                "RECORD_AUDIO"
+            ]
+        },
+        "plugins": [
+            "expo-notifications",
+            [
+                "expo-speech-recognition",
+                {
+                    "microphonePermission": "음성으로 사연을 입력하기 위해 마이크 접근이 필요합니다.",
+                    "speechRecognitionPermission": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다."
+                }
+            ]
+        ],
+        "extra": {
+            "eas": {
+                "projectId": "YOUR_EAS_PROJECT_ID"
+            }
+        }
+    }
+}

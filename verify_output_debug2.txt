@@ -1,0 +1,26 @@
+1. Testing PDF Upload...
+Using PDF: backend/backend/uploads/cases/welder49264@naver.com/de316932-b074-4576-8913-94922bee4957.pdf
+Upload Success!
+Extracted Title: None
+Risk Flags: []
+OCR Score: 96.3
+File Hash: 16e1a6300d4dfe2a5aa31f9440609714fd14397b7b3cdb8805290f38273187a9
+Client Story Preview: 
+                <div class="case-briefing">
+                    <h3 class="briefing-title">관리비 채무 부...
+Summary Preview: 
+                <div class="case-briefing">
+                    <h3 class="briefing-title">관리비 채무 부...
+Facts length: 0
+Issues length: 0
+!!! VERIFICATION FAILED: Facts field is empty or too short !!!
+
+2. Publishing Case...
+Publish Success!
+{
+  "status": "published",
+  "slug": "형사사건-Issues---승소-20260217"
+}
+
+3. Verifying in Lawyer DB...
+No cases found in DB!

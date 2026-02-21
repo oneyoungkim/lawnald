@@ -1,0 +1,44 @@
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Node ===
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# === 환경 변수 (절대 커밋 금지) ===
+.env
+.env.local
+.env.production
+.env.*.local
+
+# === DB / 데이터 ===
+*.db
+*_db.json
+push_tokens_db.json
+admin_blog_db.json
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === 빌드 산출물 ===
+dist/
+build/
+
+# === 기타 ===
+*.log
+npm-debug.log*

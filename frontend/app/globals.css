@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+:root {
+  --background: #FAFAFA;
+  /* Base: Off-White */
+  --foreground: #2C2C2C;
+  /* Text: Charcoal */
+  --main: #14213D;
+  /* Main: Deep Navy */
+  --point: #C5A065;
+  /* Point: Gold */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  --font-mono: var(--font-geist-mono);
+
+  /* Brand Colors */
+  --color-main: var(--main);
+  --color-lawnald: var(--main);
+  --color-lawnald-navy: var(--main);
+  --color-primary: var(--main);
+
+  /* Secondary can be a lighter shade of main or just base */
+  --color-secondary: #EAE6DD;
+
+  --color-accent: var(--point);
+  --color-point: var(--point);
+
+  --font-serif: "Noto Serif KR", serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #154030;
+    /* Main Deep Green as background for dark mode? Or standard dark? */
+    /* Let's stick to a standard dark mode that complements the gold/green, 
+       but user asked for specfic colors. 
+       If I use #154030 as background, it might be too intense. 
+       Let's use a very dark charcoal for background in dark mode to match the "Charcoal" text intent but inverted. */
+    --background: #1a1a1a;
+    --foreground: #F4F1EA;
+    /* Warm Cream text */
+    --main: #154030;
+    --point: #C5A065;
+  }
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+p,
+span,
+div {
+  font-weight: 400;
+}
+
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

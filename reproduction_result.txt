@@ -1,0 +1,18 @@
+Testing parse_structure with text length: 422
+
+--- Result ---
+{
+  "case_number": "2025가단86185",
+  "court": "서울중앙지방법원",
+  "full_text": "\n    2025가단86185\n    서울중앙지방법원 판결\n    \n    주문\n    피고는 원고에게 1000만원을 지급하라.\n    \n    이유\n    1. 기초사실\n    원고와 피고는 2024. 1. 1. 계약을 체결하였다.\n    피고는 계약금만 지급하고 잔금을 지급하지 않았다.\n    이에 원고는 소를 제기하였다.\n    \n    2. 판단\n    피고의 항변은 이유 없다.\n    \n    3. 결론\n    그렇다면 원고의 청구는 이유 있다.\n    \nPADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING ",
+  "facts": "The plaintiff and the defendant entered into a contract on January 1, 2024. The defendant paid only the deposit and failed to pay the remaining balance. Consequently, the plaintiff filed a lawsuit.",
+  "issues": [
+    "Non-payment of contract balance by the defendant"
+  ],
+  "reasoning": "The court found the defendant's defense to be without merit, thereby supporting the plaintiff's claim.",
+  "conclusion": "Plaintiff wins; the defendant is ordered to pay 10 million KRW to the plaintiff.",
+  "client_story": "In this case, the plaintiff and defendant had a contract where the defendant was supposed to pay a certain amount. However, after paying the initial deposit, the defendant failed to pay the rest. This led the plaintiff to take legal action to recover the owed amount. The court found the defendant's arguments unconvincing and ruled in favor of the plaintiff, ordering the defendant to pay the remaining balance. This case highlights the importance of fulfilling contractual obligations to avoid legal disputes.",
+  "ai_tags": "Contract Dispute, Non-payment, Plaintiff Victory",
+  "summary": "In this case, the plaintiff and defendant had a contract where the defendant was supposed to pay a certain amount. However, after paying the initial deposit, the defendant failed to pay the rest. This led the plaintiff to take legal action to recover the owed amount. The court found the defendant's arguments unconvincing and ruled in favor of the plaintiff, ordering the defendant to pay the remaining balance. This case highlights the importance of fulfilling contractual obligations to avoid legal disputes."
+}
+[SUCCESS] AI Parsing worked.

@@ -1,0 +1,6 @@
+sys.path: ['C:\\Users\\incbc\\.gemini\\antigravity\\scratch\\lawnald\\backend', 'c:\\Users\\incbc\\.gemini\\antigravity\\scratch\\lawnald\\backend', 'C:\\Users\\incbc\\AppData\\Local\\Programs\\Python\\Python310\\python310.zip', 'C:\\Users\\incbc\\AppData\\Local\\Programs\\Python\\Python310\\DLLs', 'C:\\Users\\incbc\\AppData\\Local\\Programs\\Python\\Python310\\lib', 'C:\\Users\\incbc\\AppData\\Local\\Programs\\Python\\Python310', 'C:\\Users\\incbc\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages']
+pdfplumber imported successfully
+fitz imported successfully
+fitz file: C:\Users\incbc\AppData\Local\Programs\Python\Python310\lib\site-packages\fitz\__init__.py
+pymupdf imported successfully
+pymupdf file: C:\Users\incbc\AppData\Local\Programs\Python\Python310\lib\site-packages\pymupdf\__init__.py

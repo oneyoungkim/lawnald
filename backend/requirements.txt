@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pydantic
+numpy
+scikit-learn
+openai
+python-multipart
+rembg
+aiofiles
+Pillow
+pypdf
+pdfplumber
+beautifulsoup4
+websockets
