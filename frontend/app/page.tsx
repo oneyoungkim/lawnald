@@ -29,8 +29,8 @@ export default function Home() {
         {/* Slogan */}
         <div className="flex flex-col items-center text-center max-w-4xl px-4 -mt-12">
           <TypingText
-            text={`당신의 사건에 가장 적합한 변호사, AI 로날드가 찾아드립니다.`}
-            className="text-sm sm:text-lg md:text-2xl font-serif text-primary leading-relaxed font-medium whitespace-nowrap"
+            text={`당신의 사건에 가장 적합한 변호사\nAI 로날드가 찾아드립니다.`}
+            className="text-sm sm:text-lg md:text-2xl font-serif text-primary leading-relaxed font-medium"
             speed={0.08}
           />
         </div>

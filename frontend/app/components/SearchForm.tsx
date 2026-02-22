@@ -3,15 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const SUGGESTED_QUERIES = [
-    "보이스피싱 피해",
-    "이혼 재산분할",
-    "교통사고 합의금",
-    "임대차 보증금 미반환",
-    "직장 내 괴롭힘",
-    "상속 분쟁",
-];
-
 export default function SearchForm() {
     const [query, setQuery] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -46,13 +37,6 @@ export default function SearchForm() {
         router.push(`/result?q=${encodeURIComponent(query)}`);
     };
 
-    const handleTagClick = (tag: string) => {
-        setQuery(tag);
-        setHasTyped(true);
-        // Focus textarea so user can append more details
-        textareaRef.current?.focus();
-    };
-
     const hasText = query.length > 0;
 
     return (
@@ -84,31 +68,15 @@ export default function SearchForm() {
                         onBlur={() => setIsFocused(false)}
                         rows={1}
                         className={`
-                            w-full min-h-[12rem] font-sans border border-point/10 p-8 text-main text-xl 
+                            w-full min-h-[12rem] font-sans border-2 border-gray-300 p-8 text-main text-xl 
                             transition-all duration-200 ease-out resize-none leading-relaxed rounded-[20px] 
                             placeholder-transparent 
-                            focus:outline-none focus:ring-2 focus:ring-point/20 focus:border-point/20
-                            ${isFocused ? 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]' : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.02)]'}
+                            focus:outline-none focus:ring-2 focus:ring-point/30 focus:border-point/40
+                            ${isFocused ? 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)]' : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]'}
                             ${hasTyped && isFocused ? 'animate-breathe' : ''}
                         `}
                     />
                 </div>
-
-                {/* Suggested query tags */}
-                {!hasText && (
-                    <div className="flex flex-wrap gap-2 justify-center px-2">
-                        {SUGGESTED_QUERIES.map(tag => (
-                            <button
-                                key={tag}
-                                type="button"
-                                onClick={() => handleTagClick(tag)}
-                                className="px-3 py-1.5 text-xs sm:text-sm text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-800 border border-gray-200 rounded-full transition-all duration-200"
-                            >
-                                {tag}
-                            </button>
-                        ))}
-                    </div>
-                )}
 
                 <div className="flex flex-col items-center gap-6 mt-4">
                     <button
