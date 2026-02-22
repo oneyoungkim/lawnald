@@ -6,8 +6,10 @@ from fastapi import WebSocket
 from datetime import datetime
 import uuid
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHAT_DB_FILE = os.path.join(BASE_DIR, "chats.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Try local file first, fall back to /tmp for serverless
+_local_chat = os.path.join(BASE_DIR, "chats.json")
+CHAT_DB_FILE = _local_chat if os.path.exists(_local_chat) else "/tmp/chats.json"
 
 class PresenceManager:
     def __init__(self):

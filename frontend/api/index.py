@@ -187,46 +187,14 @@ print("="*50 + "\n")
 
 
 
-# Ensure directories exist (Workaround for uvicorn CWD issues)
-# Ensure directories exist (Workaround for uvicorn CWD issues)
+# Vercel serverless: use /tmp for writable directory
 try:
-    import sys
-    import case_parser_v2 as case_parser_module
-    with open("debug_env.txt", "w", encoding="utf-8") as f:
-        f.write(f"sys.executable: {sys.executable}\n")
-        f.write(f"sys.path: {sys.path}\n")
-        f.write(f"case_parser file: {case_parser_module.__file__}\n")
-    os.makedirs("uploads", exist_ok=True)
+    os.makedirs("/tmp/uploads", exist_ok=True)
+    os.makedirs("/tmp/temp_uploads", exist_ok=True)
+except:
+    pass
 
-    os.makedirs("temp_uploads", exist_ok=True)
-    os.makedirs("uploads/licenses", exist_ok=True)
-    print(f"Verified directories: CWD={os.getcwd()}")
-except Exception as e:
-    print(f"Directory creation warning: {e}")
-
-# --- Auto-start Chat Server ---
-import subprocess
-import socket
-import sys
-
-def is_port_in_use(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-@app.on_event("startup")
-async def startup_event():
-    chat_port = 8003
-    if not is_port_in_use(chat_port):
-        print(f"Chat server not running on port {chat_port}. Starting it automatically...")
-        try:
-            # Launch chat_server.py as a separate process
-            # We use distinct Popen to let it run independent of this process loop
-            subprocess.Popen([sys.executable, "chat_server.py"])
-            print("Chat server started successfully. (Reload Triggered)")
-        except Exception as e:
-            print(f"Failed to start chat server: {e}")
-    else:
-        print(f"Chat server already running on port {chat_port}.")
+print(f"Serverless function loaded. CWD={os.getcwd()}")
 
 # --- Auth System ---
 
