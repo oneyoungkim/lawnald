@@ -160,23 +160,41 @@ def generate_thumbnail_endpoint(request: ThumbnailRequest):
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=500, content={"detail": f"이미지 생성 실패: {str(e)}"})
 
-from billing import router as billing_router
-app.include_router(billing_router)
+try:
+    from billing import router as billing_router
+    app.include_router(billing_router)
+except Exception as e:
+    print(f"⚠️ billing router skipped: {e}")
 
-from admin_blog import router as admin_blog_router
-app.include_router(admin_blog_router)
+try:
+    from admin_blog import router as admin_blog_router
+    app.include_router(admin_blog_router)
+except Exception as e:
+    print(f"⚠️ admin_blog router skipped: {e}")
 
-from push_notifications import router as push_router
-app.include_router(push_router)
+try:
+    from push_notifications import router as push_router
+    app.include_router(push_router)
+except Exception as e:
+    print(f"⚠️ push_notifications router skipped: {e}")
 
-from document_generator import router as docgen_router
-app.include_router(docgen_router)
+try:
+    from document_generator import router as docgen_router
+    app.include_router(docgen_router)
+except Exception as e:
+    print(f"⚠️ document_generator router skipped: {e}")
 
-from evidence_processor import router as evidence_router
-app.include_router(evidence_router)
+try:
+    from evidence_processor import router as evidence_router
+    app.include_router(evidence_router)
+except Exception as e:
+    print(f"⚠️ evidence_processor router skipped: {e}")
 
-from case_workspace import router as workspace_router
-app.include_router(workspace_router)
+try:
+    from case_workspace import router as workspace_router
+    app.include_router(workspace_router)
+except Exception as e:
+    print(f"⚠️ case_workspace router skipped: {e}")
 
 print("\n" + "="*50)
 print("STARTUP: Main.py loaded successfully")
@@ -1066,10 +1084,7 @@ app.add_middleware(
 )
 
 
-# Mount static files
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# StaticFiles removed for Vercel serverless (no filesystem access)
 
 DB_FILE = "lawyers_db.json"
 
