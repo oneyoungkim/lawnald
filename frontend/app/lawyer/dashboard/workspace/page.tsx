@@ -74,7 +74,7 @@ export default function CaseWorkspacePage() {
             const formData = new FormData();
             fileArray.forEach(f => formData.append('files', f));
 
-            const res = await fetch('${API_BASE}/api/case/upload', {
+            const res = await fetch(`${API_BASE}/api/case/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -120,7 +120,7 @@ export default function CaseWorkspacePage() {
         setIsSending(true);
 
         try {
-            const res = await fetch('${API_BASE}/api/case/chat', {
+            const res = await fetch(`${API_BASE}/api/case/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

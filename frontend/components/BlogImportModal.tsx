@@ -32,7 +32,7 @@ export default function BlogImportModal({ isOpen, onClose, onImport }: BlogImpor
         setStatus('블로그 글을 분석하고 있습니다... (약 10초 소요)');
 
         try {
-            const res = await fetch('${API_BASE}/api/blog/import', {
+            const res = await fetch(`${API_BASE}/api/blog/import`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url })

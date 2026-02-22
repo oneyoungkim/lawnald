@@ -113,7 +113,7 @@ export default function EvidenceProcessorPage() {
                 formData.append('files', f.file);
             });
 
-            const res = await fetch('${API_BASE}/api/merge-evidence', {
+            const res = await fetch(`${API_BASE}/api/merge-evidence`, {
                 method: 'POST',
                 body: formData,
             });
@@ -193,8 +193,8 @@ export default function EvidenceProcessorPage() {
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                     className={`relative rounded-3xl border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-200 ${isDragOver
-                            ? 'border-blue-400 bg-blue-50/80 dark:bg-blue-900/20 scale-[1.01]'
-                            : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-[#1c1c1e] hover:border-gray-300 hover:bg-gray-50/50'
+                        ? 'border-blue-400 bg-blue-50/80 dark:bg-blue-900/20 scale-[1.01]'
+                        : 'border-gray-200 dark:border-zinc-700 bg-white dark:bg-[#1c1c1e] hover:border-gray-300 hover:bg-gray-50/50'
                         }`}
                 >
                     <input

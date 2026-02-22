@@ -45,7 +45,7 @@ export default function DocumentGeneratorPage() {
         setGeneratedDocument('');
 
         try {
-            const res = await fetch('${API_BASE}/api/generate-notice', {
+            const res = await fetch(`${API_BASE}/api/generate-notice`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -256,8 +256,8 @@ export default function DocumentGeneratorPage() {
                                     <button
                                         onClick={handleCopy}
                                         className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${copied
-                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                : 'bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-gray-300'
+                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-gray-300'
                                             }`}
                                     >
                                         {copied ? (

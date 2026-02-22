@@ -77,7 +77,7 @@ export default function LawyerWritePage() {
         const timer = setTimeout(async () => {
             setIsAnalyzing(true);
             try {
-                const res = await fetch('${API_BASE}/api/seo/analyze', {
+                const res = await fetch(`${API_BASE}/api/seo/analyze`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title, content, keyword })
@@ -114,7 +114,7 @@ export default function LawyerWritePage() {
 
         setIsGeneratingThumbnail(true);
         try {
-            const res = await fetch('${API_BASE}/api/generate-thumbnail', {
+            const res = await fetch(`${API_BASE}/api/generate-thumbnail`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: content.slice(0, 1000) })
@@ -139,7 +139,7 @@ export default function LawyerWritePage() {
         if (!confirm("이 글을 발행하시겠습니까?")) return;
 
         try {
-            const res = await fetch('${API_BASE}/api/admin/magazine', {
+            const res = await fetch(`${API_BASE}/api/admin/magazine`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
