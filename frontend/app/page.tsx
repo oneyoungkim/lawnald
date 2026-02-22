@@ -1,10 +1,21 @@
 import Image from "next/image";
+import Link from "next/link";
 import SearchForm from "./components/SearchForm";
 import TypingText from "./components/TypingText";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-24 pt-20 bg-white text-[var(--foreground)] relative selection:bg-accent selection:text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-24 bg-white text-[var(--foreground)] relative selection:bg-accent selection:text-white">
+
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-end gap-3 px-6 py-4 z-20">
+        <Link href="/login" className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
+          로그인
+        </Link>
+        <Link href="/signup/client" className="text-sm bg-[var(--main)] text-white px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity">
+          회원가입
+        </Link>
+      </div>
 
       <div className="z-10 max-w-5xl w-full items-center justify-center text-sm flex flex-col gap-24">
 

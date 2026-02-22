@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import SecurityGuard from "./components/SecurityGuard";
-import Navbar from "./components/Navbar";
+
 import Footer from "./components/Footer";
 
 
@@ -55,7 +55,7 @@ export default function RootLayout({
       <body
         className={`antialiased bg-background text-foreground font-sans selection:bg-point/30 selection:text-foreground flex flex-col min-h-screen`}
       >
-        <Navbar />
+
         <div className="flex-1">{children}</div>
         <Footer />
         <SecurityGuard />
