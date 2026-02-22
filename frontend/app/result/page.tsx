@@ -116,7 +116,7 @@ function ResultPageContent() {
     }, [query, selectedGender, selectedEducation, selectedCareer, selectedLocation]); // Added selectedLocation dependency
 
     return (
-        <div className="min-h-screen bg-background pt-24 pb-20">
+        <div className="min-h-screen bg-white text-black pt-24 pb-20" style={{ colorScheme: 'light' }}>
             <h1 className="sr-only">AI 변호사 추천 결과</h1>
             <div className="container mx-auto px-6 max-w-5xl">
                 <div className="mb-4 flex items-center justify-between">
