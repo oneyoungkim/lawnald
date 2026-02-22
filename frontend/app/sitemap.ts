@@ -31,8 +31,8 @@ async function getLawyerSitemapData(): Promise<LawyerSitemapItem[]> {
         const res = await fetch('http://127.0.0.1:8000/api/public/lawyers');
         if (!res.ok) return [];
         return res.json();
-    } catch (e) {
-        console.error("Failed to fetch lawyers for sitemap", e);
+    } catch {
+        // Expected during build — no backend server running
         return [];
     }
 }
