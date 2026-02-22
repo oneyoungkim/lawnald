@@ -1,3 +1,4 @@
+import { API_BASE } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useSpring, useTransform, useInView } from "framer-motion";
@@ -314,58 +315,59 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                     </motion.div>
                 )}
 
-                {/* Contact Actions (Subtle) */}
+                {/* Contact Actions */}
                 <motion.div
-                    className="flex gap-3 mt-8"
+                    className="grid grid-cols-4 gap-2 mt-8"
                     variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 }, dimmed: { opacity: 0.5 } }}
                 >
                     <Link
                         href={`/lawyer/${lawyer.id}`}
-                        className="flex-1 bg-point/10 hover:bg-point/20 text-main text-sm font-semibold py-3.5 rounded-xl transition-colors text-center flex items-center justify-center"
+                        className="col-span-1 bg-gray-100 hover:bg-gray-200 text-[#1d1d1f] text-sm font-semibold py-3 rounded-xl transition-colors text-center"
                     >
-                        프로필 보기
+                        프로필
                     </Link>
 
                     <button
                         onClick={() => setIsChatOpen(true)}
-                        className={`flex-1 bg-main text-white border border-transparent hover:bg-main/90 rounded-[14px] text-sm font-semibold transition-all shadow-lg shadow-main/20 active:scale-[0.98] flex items-center justify-center gap-1.5 ${lawyer.isOnline ? 'ring-2 ring-emerald-500/20 border-emerald-500/30' : ''}`}
+                        className={`col-span-1 bg-main text-white hover:bg-main/90 rounded-xl text-sm font-semibold transition-all py-3 flex items-center justify-center gap-1 ${lawyer.isOnline ? 'ring-2 ring-emerald-400/30' : ''}`}
                     >
-                        <span className="text-lg">💬</span> {lawyer.isOnline ? "즉시 상담" : "1:1 채팅"}
+                        💬 {lawyer.isOnline ? "즉시" : "채팅"}
                     </button>
 
-                    {/* Contact Icons Group */}
-                    <div className="flex gap-2">
-                        {lawyer.phone && (
-                            <button
-                                onClick={handlePhoneClick}
-                                className="w-12 h-full flex items-center justify-center bg-white border border-point/20 hover:bg-point/5 rounded-xl transition-colors tooltip-trigger"
-                                aria-label="전화 상담"
-                            >
-                                <PhoneIcon className="w-5 h-5 text-[#1d1d1f] dark:text-white" />
-                            </button>
-                        )}
-                        {lawyer.homepage && (
-                            <a
-                                href={lawyer.homepage}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={() => handleContactClick("homepage")}
-                                className="w-12 h-full flex items-center justify-center bg-[#F5F5F7] hover:bg-[#E8E8ED] dark:bg-[#2c2c2e] dark:hover:bg-[#3a3a3c] rounded-xl transition-colors"
-                                aria-label="홈페이지"
-                            >
-                                <GlobeAltIcon className="w-5 h-5 text-[#1d1d1f] dark:text-white" />
-                            </a>
-                        )}
-                        {lawyer.kakao_id && (
-                            <button
-                                onClick={() => handleContactClick("kakao")}
-                                className="w-12 h-full flex items-center justify-center bg-[#FBE54D] hover:bg-[#FAD400] text-[#3B1E1E] rounded-xl transition-colors"
-                                aria-label="카카오톡 상담"
-                            >
-                                <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5" />
-                            </button>
-                        )}
-                    </div>
+                    {lawyer.phone ? (
+                        <button
+                            onClick={handlePhoneClick}
+                            className="col-span-1 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center py-3"
+                            aria-label="전화 상담"
+                        >
+                            <PhoneIcon className="w-5 h-5 text-[#1d1d1f]" />
+                        </button>
+                    ) : (
+                        <div className="col-span-1" />
+                    )}
+
+                    {lawyer.kakao_id ? (
+                        <button
+                            onClick={() => handleContactClick("kakao")}
+                            className="col-span-1 bg-[#FBE54D] hover:bg-[#FAD400] text-[#3B1E1E] rounded-xl transition-colors flex items-center justify-center py-3"
+                            aria-label="카카오톡 상담"
+                        >
+                            <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5" />
+                        </button>
+                    ) : lawyer.homepage ? (
+                        <a
+                            href={lawyer.homepage}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => handleContactClick("homepage")}
+                            className="col-span-1 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors flex items-center justify-center py-3"
+                            aria-label="홈페이지"
+                        >
+                            <GlobeAltIcon className="w-5 h-5 text-[#1d1d1f]" />
+                        </a>
+                    ) : (
+                        <div className="col-span-1" />
+                    )}
                 </motion.div>
             </div>
 

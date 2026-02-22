@@ -9,7 +9,7 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import LawyerCard from "../components/LawyerCard";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 
 interface Lawyer {
     id: string;
@@ -63,6 +63,7 @@ function ResultPageContent() {
     const searchParams = useSearchParams();
     const query = searchParams.get("q");
     const [lawyers, setLawyers] = useState<Lawyer[]>([]);
+    const lawyerListRef = useRef<HTMLDivElement>(null);
     const [analysis, setAnalysis] = useState("");
     const [analysisDetails, setAnalysisDetails] = useState<AnalysisDetails | null>(null);
     const [loading, setLoading] = useState(true);
@@ -113,7 +114,17 @@ function ResultPageContent() {
         };
 
         fetchLawyers();
-    }, [query, selectedGender, selectedEducation, selectedCareer, selectedLocation]); // Added selectedLocation dependency
+    }, [query, selectedGender, selectedEducation, selectedCareer, selectedLocation]);
+
+    // Auto-scroll to lawyer list after briefing is shown
+    useEffect(() => {
+        if (!loading && lawyers.length > 0 && lawyerListRef.current) {
+            const timer = setTimeout(() => {
+                lawyerListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, lawyers]);
 
     return (
         <div className="min-h-screen bg-white text-black pt-24 pb-20" style={{ colorScheme: 'light' }}>
@@ -206,11 +217,11 @@ function ResultPageContent() {
                 )}
 
                 {/* Filters */}
-                <div className="flex flex-wrap gap-2 mb-8 p-4 bg-gray-50 dark:bg-zinc-900 rounded-xl">
+                <div className="flex flex-wrap gap-2 mb-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <select
                         value={selectedLocation}
                         onChange={(e) => setSelectedLocation(e.target.value)}
-                        className="px-3 py-2 text-sm border-0 rounded-lg bg-white dark:bg-zinc-800 focus:ring-1 focus:ring-lawnald"
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
                     >
                         <option value="">지역 전체</option>
                         <option value="서울">서울</option>
@@ -225,7 +236,7 @@ function ResultPageContent() {
                     <select
                         value={selectedGender}
                         onChange={(e) => setSelectedGender(e.target.value)}
-                        className="px-3 py-2 text-sm border-0 rounded-lg bg-white dark:bg-zinc-800 focus:ring-1 focus:ring-lawnald"
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
                     >
                         <option value="">성별 전체</option>
                         <option value="Male">남성</option>
@@ -235,7 +246,7 @@ function ResultPageContent() {
                     <select
                         value={selectedEducation}
                         onChange={(e) => setSelectedEducation(e.target.value)}
-                        className="px-3 py-2 text-sm border-0 rounded-lg bg-white dark:bg-zinc-800 focus:ring-1 focus:ring-lawnald"
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
                     >
                         <option value="">출신 전체</option>
                         <option value="법학전문대학원">로스쿨</option>
@@ -244,7 +255,7 @@ function ResultPageContent() {
                     <select
                         value={selectedCareer}
                         onChange={(e) => setSelectedCareer(e.target.value)}
-                        className="px-3 py-2 text-sm border-0 rounded-lg bg-white dark:bg-zinc-800 focus:ring-1 focus:ring-lawnald"
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
                     >
                         <option value="">경력 전체</option>
                         <option value="대형 로펌 출신">대형 로펌 출신</option>
@@ -265,7 +276,7 @@ function ResultPageContent() {
                     </div>
                 )}
 
-                <div className="space-y-4">
+                <div ref={lawyerListRef} className="space-y-4">
                     {lawyers.map((lawyer) => (
                         <div
                             key={lawyer.id}
