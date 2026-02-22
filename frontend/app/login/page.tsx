@@ -20,7 +20,7 @@ export default function LoginPage() {
     // ── 백엔드에 소셜 유저 등록/로그인 ──
     const registerSocialUser = async (provider: string, socialId: string, name: string, email: string | null) => {
         try {
-            const res = await fetch("${API_BASE}/api/auth/social/login", {
+            const res = await fetch(`${API_BASE}/api/auth/social/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ provider, social_id: socialId, name, email })
@@ -87,11 +87,11 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            let url = "${API_BASE}/api/auth/client/login";
+            let url = `${API_BASE}/api/auth/client/login`;
             const body = { email: formData.email, password: formData.password };
 
             if (loginType === "lawyer") {
-                url = "${API_BASE}/api/auth/login";
+                url = `${API_BASE}/api/auth/login`;
             }
 
             const res = await fetch(url, {
