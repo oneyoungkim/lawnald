@@ -56,7 +56,7 @@ export default function SearchForm() {
                     <div
                         className={`absolute top-8 left-8 right-8 pointer-events-none transition-opacity duration-300 ${query ? 'opacity-0' : 'opacity-100'}`}
                     >
-                        <p className="text-zinc-400 text-xs sm:text-sm font-normal tracking-tight truncate">
+                        <p className="text-zinc-400 text-xs sm:text-sm font-normal tracking-tight">
                             지금 어떤 상황인가요? 자세히 말씀해주시면 변호사 추천 정확도가 올라갑니다.
                         </p>
                     </div>
