@@ -148,7 +148,7 @@ function ResultPageContent() {
                 {/* AI Case Insight (Briefing Style) */}
                 {!loading && !error && analysisDetails && (
                     <div className="mb-16 animate-fade-in-up">
-                        <div className="bg-white dark:bg-[#1c1c1e] rounded-3xl p-8 md:p-10 shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-zinc-800">
+                        <div className="bg-white rounded-3xl p-8 md:p-10 shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-gray-100">
                             {/* Header: Core Summary */}
                             <div className="mb-10 text-center max-w-3xl mx-auto">
                                 <h2 className="text-3xl md:text-3xl font-serif font-medium text-main leading-tight tracking-tight mb-4 break-keep">
@@ -159,16 +159,16 @@ function ResultPageContent() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 border-t border-gray-100 dark:border-zinc-800 pt-10">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 border-t border-gray-100 pt-10">
                                 {/* Left: Key Issues */}
                                 <div>
-                                    <h3 className="text-lg font-semibold text-[#1d1d1f] dark:text-white mb-6 flex items-center gap-2">
+                                    <h3 className="text-lg font-semibold text-[#1d1d1f] mb-6 flex items-center gap-2">
                                         핵심 쟁점
                                     </h3>
                                     <ul className="space-y-4">
-                                        {(analysisDetails.key_issues || [analysisDetails.core_risk]).map((issue, idx) => (
-                                            <li key={idx} className="flex cross-start gap-3 text-[15px] leading-relaxed text-[#424245] dark:text-zinc-300">
-                                                <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[#1d1d1f] dark:bg-zinc-500 mt-2.5" />
+                                        {(analysisDetails.key_issues?.length > 0 ? analysisDetails.key_issues : [analysisDetails.core_risk].filter(Boolean)).map((issue: string, idx: number) => (
+                                            <li key={idx} className="flex cross-start gap-3 text-[15px] leading-relaxed text-[#424245]">
+                                                <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[#1d1d1f] mt-2.5" />
                                                 <span>{issue}</span>
                                             </li>
                                         ))}
@@ -177,16 +177,16 @@ function ResultPageContent() {
 
                                 {/* Right: Action Plan */}
                                 <div>
-                                    <h3 className="text-lg font-semibold text-[#1d1d1f] dark:text-white mb-6 flex items-center gap-2">
+                                    <h3 className="text-lg font-semibold text-[#1d1d1f] mb-6 flex items-center gap-2">
                                         대응 및 행동 제안
                                     </h3>
                                     <div className="space-y-5">
-                                        {(analysisDetails.action_checklist || [analysisDetails.time_strategy]).map((action, idx) => (
+                                        {(analysisDetails.action_checklist?.length > 0 ? analysisDetails.action_checklist : [analysisDetails.time_strategy].filter(Boolean)).map((action: string, idx: number) => (
                                             <div key={idx} className="flex gap-4 items-start group">
-                                                <div className="flex-shrink-0 w-6 h-6 rounded-full border border-gray-300 dark:border-zinc-700 flex items-center justify-center mt-0.5">
-                                                    <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-600 group-hover:text-blue-500 transition-colors">{idx + 1}</span>
+                                                <div className="flex-shrink-0 w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center mt-0.5">
+                                                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 transition-colors">{idx + 1}</span>
                                                 </div>
-                                                <p className="text-[15px] leading-relaxed text-[#424245] dark:text-zinc-300 break-keep">
+                                                <p className="text-[15px] leading-relaxed text-[#424245] break-keep">
                                                     {action}
                                                 </p>
                                             </div>
