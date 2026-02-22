@@ -63,7 +63,7 @@ export default function AdminBlogWritePage() {
         try {
             const url = isEditMode
                 ? `${API_BASE}/api/admin/blog/manage/${editId}`
-                : "${API_BASE}/api/admin/blog/manage";
+                : `${API_BASE}/api/admin/blog/manage`;
             const res = await fetch(url, {
                 method: isEditMode ? "PUT" : "POST",
                 headers: {

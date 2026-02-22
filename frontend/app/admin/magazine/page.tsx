@@ -32,7 +32,7 @@ export default function AdminMagazinePage() {
     const fetchItems = async () => {
         setLoading(true);
         try {
-            const res = await fetch("${API_BASE}/api/admin/magazine/all");
+            const res = await fetch(`${API_BASE}/api/admin/magazine/all`);
             if (res.ok) {
                 const data = await res.json();
                 setItems(data);

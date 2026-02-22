@@ -30,8 +30,8 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             const [subRes, lawyerRes] = await Promise.all([
-                fetch("${API_BASE}/api/admin/submissions?status=pending"),
-                fetch("${API_BASE}/api/admin/lawyers/pending")
+                fetch(`${API_BASE}/api/admin/submissions?status=pending`),
+                fetch(`${API_BASE}/api/admin/lawyers/pending`)
             ]);
 
             if (subRes.ok) {
@@ -298,7 +298,7 @@ function AdminStats() {
     const [stats, setStats] = useState<any>(null);
 
     useEffect(() => {
-        fetch("${API_BASE}/api/admin/stats")
+        fetch(`${API_BASE}/api/admin/stats`)
             .then(res => res.json())
             .then(data => setStats(data))
             .catch(err => console.error(err));

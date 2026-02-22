@@ -10,7 +10,7 @@ export default function AdminApprovalsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch("${API_BASE}/api/admin/drafts")
+        fetch(`${API_BASE}/api/admin/drafts`)
             .then(res => res.json())
             .then(data => {
                 setDrafts(data);

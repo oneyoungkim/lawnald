@@ -35,7 +35,7 @@ export default function ClientSignupPage() {
 
         setLoading(true);
         try {
-            const res = await fetch("${API_BASE}/api/auth/client/register", {
+            const res = await fetch(`${API_BASE}/api/auth/client/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -64,7 +64,7 @@ export default function ClientSignupPage() {
     // ── 백엔드에 소셜 유저 등록/로그인 ──
     const registerSocialUser = async (provider: string, socialId: string, name: string, email: string | null) => {
         try {
-            const res = await fetch("${API_BASE}/api/auth/social/login", {
+            const res = await fetch(`${API_BASE}/api/auth/social/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ provider, social_id: socialId, name, email })

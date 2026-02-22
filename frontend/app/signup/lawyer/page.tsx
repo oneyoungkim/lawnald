@@ -36,7 +36,7 @@ export default function LawyerSignupPage() {
             });
             data.append("licenseImage", licenseFile);
 
-            const res = await fetch("${API_BASE}/api/auth/signup/lawyer", {
+            const res = await fetch(`${API_BASE}/api/auth/signup/lawyer`, {
                 method: "POST",
                 body: data
             });

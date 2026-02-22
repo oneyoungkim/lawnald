@@ -1,0 +1,17 @@
+Loading DB from lawyers_db.json
+Loaded 4 chat sessions.
+Lazy loading embeddings... Call refresh_index() manually if needed.
+
+==================================================
+STARTUP: Main.py loaded successfully
+==================================================
+
+Directory creation warning: No module named 'backend.case_parser_v2'
+Loaded 101 lawyers from lawyers_db.json
+Initializing Search Engine...
+Loading embeddings from cache...
+Loaded 1119 embeddings.
+DEBUG: Failed to import backend.case_parser_v2: No module named 'backend.case_parser_v2'
+DEBUG: Successfully imported case_parser from case_parser_v2
+Chat server not running on port 8003. Starting it automatically...
+Chat server started successfully. (Reload Triggered)

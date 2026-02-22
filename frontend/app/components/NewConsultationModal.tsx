@@ -23,7 +23,7 @@ export default function NewConsultationModal({ isOpen, onClose, lawyerId }: NewC
 
         setLoading(true);
         try {
-            const res = await fetch("${API_BASE}/api/consultations", {
+            const res = await fetch(`${API_BASE}/api/consultations`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

@@ -28,7 +28,7 @@ export default function CaseArchivePage() {
     const fetchCases = async () => {
         setLoading(true);
         try {
-            let url = "${API_BASE}/api/cases/archive";
+            let url = `${API_BASE}/api/cases/archive`;
             const params = new URLSearchParams();
             if (searchQuery) params.append("query", searchQuery);
             if (selectedField) params.append("field", selectedField);

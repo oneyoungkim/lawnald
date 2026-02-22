@@ -38,7 +38,7 @@ export default function PricingPage() {
     }, []);
 
     useEffect(() => {
-        fetch("${API_BASE}/api/billing/founder-count")
+        fetch(`${API_BASE}/api/billing/founder-count`)
             .then((res) => res.json())
             .then(setFounderData)
             .catch(() =>

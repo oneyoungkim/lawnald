@@ -12,7 +12,7 @@ export default function MyCasesPage() {
 
     useEffect(() => {
         // Mock lawyer ID for now
-        fetch("${API_BASE}/api/cases/my?lawyer_id=lawyer1@example.com")
+        fetch(`${API_BASE}/api/cases/my?lawyer_id=lawyer1@example.com`)
             .then(res => res.json())
             .then(data => setCases(data))
             .finally(() => setLoading(false));

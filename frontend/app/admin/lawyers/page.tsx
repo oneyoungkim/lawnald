@@ -76,7 +76,7 @@ export default function AdminLawyersPage() {
         setLoading(true);
         try {
             // Use the direct admin endpoint to get ALL lawyers (raw DB)
-            const res = await fetch("${API_BASE}/api/admin/lawyers");
+            const res = await fetch(`${API_BASE}/api/admin/lawyers`);
             if (res.ok) {
                 const data = await res.json();
                 setLawyers(data); // Endpoint returns List[LawyerModel] directly

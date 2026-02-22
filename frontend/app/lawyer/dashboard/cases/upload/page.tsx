@@ -34,7 +34,7 @@ export default function CaseUploadPage() {
         formData.append("file", uploadFile);
 
         try {
-            const res = await fetch("${API_BASE}/api/cases/upload", {
+            const res = await fetch(`${API_BASE}/api/cases/upload`, {
                 method: "POST",
                 body: formData
             });
@@ -72,7 +72,7 @@ export default function CaseUploadPage() {
                 summary: preview.summary // Short excerpt
             };
 
-            const res = await fetch("${API_BASE}/api/cases/publish", {
+            const res = await fetch(`${API_BASE}/api/cases/publish`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -35,7 +35,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 async function getPosts(): Promise<BlogPost[]> {
     try {
-        const res = await fetch("${API_BASE}/api/admin/blog/posts", {
+        const res = await fetch(`${API_BASE}/api/admin/blog/posts`, {
             cache: "no-store",
         });
         if (!res.ok) return [];

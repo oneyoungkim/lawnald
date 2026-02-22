@@ -62,7 +62,7 @@ export default function CaseAdminPage() {
     const fetchCases = async () => {
         setLoading(true);
         try {
-            const res = await fetch("${API_BASE}/api/cases/admin");
+            const res = await fetch(`${API_BASE}/api/cases/admin`);
             if (res.ok) {
                 const data = await res.json();
                 setCases(data);
@@ -149,8 +149,8 @@ export default function CaseAdminPage() {
                                     key={s}
                                     onClick={() => setFilterStatus(s)}
                                     className={`px-3 py-1.5 rounded-lg whitespace-nowrap capitalize transition-colors ${filterStatus === s
-                                            ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-black font-semibold"
-                                            : "bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                                        ? "bg-[#1d1d1f] text-white dark:bg-white dark:text-black font-semibold"
+                                        : "bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700"
                                         }`}
                                 >
                                     {s}
@@ -166,14 +166,14 @@ export default function CaseAdminPage() {
                                 key={item.original.id}
                                 onClick={() => setSelectedCase(item)}
                                 className={`p-5 rounded-2xl cursor-pointer transition-all border-2 ${selectedCase?.original.id === item.original.id
-                                        ? "bg-white dark:bg-[#1c1c1e] border-[#007aff] shadow-md"
-                                        : "bg-white dark:bg-[#1c1c1e] border-transparent hover:border-gray-200 dark:hover:border-zinc-700 shadow-sm"
+                                    ? "bg-white dark:bg-[#1c1c1e] border-[#007aff] shadow-md"
+                                    : "bg-white dark:bg-[#1c1c1e] border-transparent hover:border-gray-200 dark:hover:border-zinc-700 shadow-sm"
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-2">
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${item.original.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                            item.original.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                'bg-yellow-100 text-yellow-800'
+                                        item.original.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                            'bg-yellow-100 text-yellow-800'
                                         }`}>
                                         {item.original.status}
                                     </span>

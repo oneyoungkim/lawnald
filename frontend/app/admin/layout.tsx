@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
 
         // 토큰 서버 검증
-        fetch("${API_BASE}/api/admin/blog/auth/verify", {
+        fetch(`${API_BASE}/api/admin/blog/auth/verify`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => {

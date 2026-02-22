@@ -52,7 +52,7 @@ export default function LawyerMagazinePage() {
         setLoading(true);
         try {
             // Fetch all and filter client-side for now
-            const res = await fetch("${API_BASE}/api/admin/magazine/all");
+            const res = await fetch(`${API_BASE}/api/admin/magazine/all`);
             if (res.ok) {
                 const data = await res.json();
                 // Filter by current lawyer
