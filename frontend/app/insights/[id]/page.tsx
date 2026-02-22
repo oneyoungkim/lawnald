@@ -1,4 +1,5 @@
-import { API_BASE } from "@/lib/api";
+// Server component: resolve API base from env directly
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 import type { Metadata } from "next";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";

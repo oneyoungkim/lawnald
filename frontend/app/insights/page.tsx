@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+// Server component: resolve API base from env directly
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export const metadata: Metadata = {
     title: "공식 인사이트 | Lawnald",
     description: "로날드가 엄선한 법률 인사이트, 우수 변호사 소개, 플랫폼 소식을 확인하세요.",
