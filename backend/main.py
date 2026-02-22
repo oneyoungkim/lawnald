@@ -1853,10 +1853,185 @@ class ContentSubmission(BaseModel):
     url: Optional[str] = None
     tags: List[str] = []
 
-def generate_youtube_summary(url: str, title: str) -> str:
-    # Deprecated: User requested Score-Only system.
-    # No summary generation, just return empty or placeholder.
-    return ""
+def extract_video_id(url: str) -> str:
+    """Extract YouTube video ID from various URL formats."""
+    import re
+    patterns = [
+        r'(?:youtu\.be/)([\w-]{11})',
+        r'(?:youtube\.com/watch\?v=)([\w-]{11})',
+        r'(?:youtube\.com/embed/)([\w-]{11})',
+        r'(?:youtube\.com/shorts/)([\w-]{11})',
+        r'(?:youtube\.com/v/)([\w-]{11})',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    raise ValueError(f"Could not extract video ID from URL: {url}")
+
+
+def fetch_youtube_transcript(video_id: str) -> str:
+    """Fetch transcript from YouTube, including auto-generated captions."""
+    from youtube_transcript_api import YouTubeTranscriptApi
+    
+    try:
+        # Try Korean first, then auto-generated Korean, then any available
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        
+        transcript = None
+        # 1. Try manual Korean
+        try:
+            transcript = transcript_list.find_transcript(['ko'])
+        except Exception:
+            pass
+        
+        # 2. Try auto-generated Korean
+        if not transcript:
+            try:
+                for t in transcript_list:
+                    if t.language_code == 'ko' and t.is_generated:
+                        transcript = t
+                        break
+            except Exception:
+                pass
+        
+        # 3. Try any generated transcript and translate to Korean
+        if not transcript:
+            try:
+                for t in transcript_list:
+                    if t.is_generated:
+                        transcript = t.translate('ko')
+                        break
+            except Exception:
+                pass
+        
+        # 4. Fallback: just get the first available
+        if not transcript:
+            for t in transcript_list:
+                transcript = t
+                break
+        
+        if not transcript:
+            raise Exception("No transcripts available")
+        
+        fetched = transcript.fetch()
+        # Combine all text segments
+        full_text = " ".join([entry.text for entry in fetched])
+        return full_text
+        
+    except Exception as e:
+        print(f"YouTube transcript fetch error: {e}")
+        # Fallback: try simple fetch
+        try:
+            result = YouTubeTranscriptApi.get_transcript(video_id, languages=['ko', 'en'])
+            return " ".join([entry['text'] for entry in result])
+        except Exception as e2:
+            print(f"YouTube transcript fallback error: {e2}")
+            return ""
+
+
+def generate_youtube_magazine_article(transcript: str, title: str, lawyer_name: str = "") -> dict:
+    """Use OpenAI to rewrite YouTube transcript as a magazine article in the lawyer's speaking style."""
+    import openai
+    
+    if not transcript or len(transcript.strip()) < 50:
+        return {"title": title, "content": "", "tags": []}
+    
+    # Truncate if too long (GPT context limit)
+    if len(transcript) > 15000:
+        transcript = transcript[:15000]
+    
+    client = openai.OpenAI()
+    
+    prompt = f"""당신은 법률 매거진 편집자입니다. 아래는 변호사가 유튜브에서 설명한 영상의 자막입니다.
+이 자막을 기반으로, 변호사가 직접 독자에게 이야기하는 말투 그대로 매거진 글을 작성해주세요.
+
+규칙:
+1. 변호사의 자연스러운 말투를 최대한 살려주세요 (예: "~입니다", "~하시면 됩니다", "제가 경험한 바로는~")
+2. 영상 내용을 빠짐없이 정리하되, 불필요한 반복이나 "구독", "좋아요" 등 유튜브 관련 멘트는 제거해주세요
+3. 적절한 소제목(##)을 달아 가독성을 높여주세요
+4. 1500자 이상으로 충분히 작성해주세요
+5. 핵심 법률 용어나 중요 포인트는 **굵게** 표시해주세요
+6. 글 마지막에 핵심 요약을 3줄로 정리해주세요
+
+영상 제목: {title}
+{f'변호사: {lawyer_name}' if lawyer_name else ''}
+
+--- 자막 시작 ---
+{transcript}
+--- 자막 끝 ---
+
+아래 형식으로 응답해주세요:
+TITLE: (AI가 개선한 매거진 제목)
+TAGS: (쉼표로 구분된 관련 태그 5개)
+CONTENT:
+(매거진 본문)"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "당신은 법률 매거진 전문 편집자입니다. 변호사 유튜브 영상을 매거진 글로 변환합니다."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4000,
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Parse response
+        ai_title = title
+        ai_tags = []
+        ai_content = result_text
+        
+        lines = result_text.split("\n")
+        content_start = 0
+        for i, line in enumerate(lines):
+            if line.startswith("TITLE:"):
+                ai_title = line.replace("TITLE:", "").strip()
+            elif line.startswith("TAGS:"):
+                ai_tags = [t.strip() for t in line.replace("TAGS:", "").split(",") if t.strip()]
+            elif line.startswith("CONTENT:"):
+                content_start = i + 1
+                break
+        
+        if content_start > 0:
+            ai_content = "\n".join(lines[content_start:]).strip()
+        
+        return {
+            "title": ai_title,
+            "content": ai_content,
+            "tags": ai_tags
+        }
+        
+    except Exception as e:
+        print(f"OpenAI rewrite error: {e}")
+        return {"title": title, "content": transcript[:3000], "tags": []}
+
+
+def generate_youtube_summary(url: str, title: str, lawyer_name: str = "") -> dict:
+    """Full pipeline: YouTube URL → transcript extraction → AI magazine article."""
+    try:
+        video_id = extract_video_id(url)
+        print(f"[YouTube] Extracted video ID: {video_id}")
+        
+        transcript = fetch_youtube_transcript(video_id)
+        if not transcript:
+            return {"title": title, "content": "", "tags": [], "error": "자막을 가져올 수 없습니다. 영상에 자막이 없거나 비공개 영상입니다."}
+        
+        print(f"[YouTube] Fetched transcript: {len(transcript)} chars")
+        
+        result = generate_youtube_magazine_article(transcript, title, lawyer_name)
+        print(f"[YouTube] AI article generated: {len(result.get('content', ''))} chars")
+        
+        return result
+        
+    except ValueError as e:
+        return {"title": title, "content": "", "tags": [], "error": str(e)}
+    except Exception as e:
+        print(f"[YouTube] Pipeline error: {e}")
+        return {"title": title, "content": "", "tags": [], "error": f"처리 중 오류: {str(e)}"}
 
 @app.post("/api/lawyers/{lawyer_id}/content")
 def submit_general_content(lawyer_id: str, submission: ContentSubmission):
@@ -1871,11 +2046,27 @@ def submit_general_content(lawyer_id: str, submission: ContentSubmission):
     if submission.type == "youtube":
         if not submission.url:
              raise HTTPException(status_code=400, detail="YouTube URL is required")
-        # Auto-summarize
-        summary = generate_youtube_summary(submission.url, submission.title)
-        # Append summary to content body if empty, or just use it
+        # Auto-extract transcript and generate magazine article
+        yt_result = generate_youtube_summary(submission.url, submission.title, lawyer.get("name", ""))
+        
+        if yt_result.get("error"):
+            raise HTTPException(status_code=400, detail=yt_result["error"])
+        
+        # Use AI-generated content
+        content_body = yt_result.get("content", "")
         if not content_body:
-            content_body = summary
+            raise HTTPException(status_code=400, detail="영상 자막을 가져올 수 없습니다.")
+        
+        # Use AI-improved title if available
+        if yt_result.get("title"):
+            submission.title = yt_result["title"]
+        
+        # Merge AI tags with user-provided tags
+        ai_tags = yt_result.get("tags", [])
+        if ai_tags:
+            submission.tags = list(set(submission.tags + ai_tags))
+        
+        summary = content_body[:200] + "..."
     else:
         # Default summary
         summary = content_body[:100] + "..." if content_body else ""
@@ -1884,8 +2075,9 @@ def submit_general_content(lawyer_id: str, submission: ContentSubmission):
 
         
     # --- Content Validation ---
-    # 1. Length Check
-    len_check = content_validator.validate_length(content_body, min_length=100) # relaxed for manual testing
+    # 1. Length Check (relaxed for AI-generated YouTube content)
+    min_len = 30 if submission.type == "youtube" else 100
+    len_check = content_validator.validate_length(content_body, min_length=min_len)
     if not len_check["valid"]:
         raise HTTPException(status_code=400, detail=len_check["message"])
 
