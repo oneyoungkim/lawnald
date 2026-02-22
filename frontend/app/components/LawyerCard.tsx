@@ -71,7 +71,7 @@ function Counter({ value }: { value: number }) {
     return <motion.span ref={ref}>{displayValue}</motion.span>;
 }
 
-export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, query?: string }) {
+export default function LawyerCard({ lawyer, query, index = 0 }: { lawyer: LawyerProps, query?: string, index?: number }) {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     let displayImage = lawyer.cutoutImageUrl || lawyer.imageUrl;
@@ -123,19 +123,14 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
     };
 
     const ref = useRef(null);
-    const isInView = useInView(ref, { margin: "-20% 0px -20% 0px", amount: 0.5 });
-    const [hasEntered, setHasEntered] = useState(false);
+    const isInView = useInView(ref, { once: true, margin: "0px 0px -10% 0px" });
 
-    useEffect(() => {
-        if (isInView) setHasEntered(true);
-    }, [isInView]);
-
-    const animationState = isInView ? "visible" : (hasEntered ? "dimmed" : "hidden");
+    const animationState = isInView ? "visible" : "hidden";
 
     return (
         <motion.div
             ref={ref}
-            className="w-full bg-white dark:bg-[#1c1c1e] rounded-[24px] overflow-hidden flex flex-col md:flex-row shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-transparent transition-colors duration-500"
+            className="w-full bg-white dark:bg-[#1c1c1e] rounded-[24px] overflow-hidden flex flex-col md:flex-row shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-gray-100 dark:border-white/10 transition-colors duration-500"
             initial="hidden"
             animate={animationState}
             variants={{
@@ -153,20 +148,13 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                         staggerChildren: 0.15,
                         delayChildren: 0.1
                     }
-                },
-                dimmed: {
-                    opacity: 0.5,
-                    y: 0,
-                    scale: 0.96,
-                    borderColor: "transparent",
-                    transition: { duration: 0.5, ease: "easeOut" }
                 }
             }}
         >
             {/* LEFT: Portrait Area (32%) */}
             <div className="relative w-full md:w-[32%] h-[400px] md:h-auto md:self-stretch bg-[#F5F5F7] dark:bg-zinc-800 shrink-0 overflow-hidden group cursor-pointer">
                 <Link href={`/lawyer/${lawyer.id}`}>
-                    <motion.div className="w-full h-full relative" variants={{ hidden: { opacity: 0, scale: 1.05 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.7 } }, dimmed: { opacity: 0.8 } }}>
+                    <motion.div className="w-full h-full relative" variants={{ hidden: { opacity: 0, scale: 1.05 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.7 } } }}>
                         <Image
                             src={displayImage!}
                             alt={lawyer.name}
@@ -195,7 +183,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
 
                 {/* Header: Name & Match Score */}
                 <div className="flex justify-between items-start mb-6">
-                    <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 }, dimmed: { opacity: 0.5 } }}>
+                    <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
                         <Link href={`/lawyer/${lawyer.id}`} className="group">
                             <h2 className="text-2xl md:text-3xl font-semibold text-[#1d1d1f] dark:text-white mb-1 group-hover:opacity-70 transition-opacity">
                                 {lawyer.name}
@@ -212,8 +200,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                         className="text-right"
                         variants={{
                             hidden: { opacity: 0 },
-                            visible: { opacity: 1, scale: 1.05 },
-                            dimmed: { opacity: 0.6, scale: 1 }
+                            visible: { opacity: 1, scale: 1.05 }
                         }}
                     >
                         <span className="text-sm font-medium text-[#86868b] dark:text-gray-400 block mb-0.5">Match</span>
@@ -224,7 +211,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                 </div>
 
                 {/* Best Case & Best Content Section */}
-                <motion.div className="mb-8" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 }, dimmed: { opacity: 0.8 } }}>
+                <motion.div className="mb-8" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
                     {/* Best Case (Existing) */}
                     {lawyer.bestCase && (
                         <div className="mb-4 bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
@@ -264,7 +251,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                 {/* Details Grid */}
                 <motion.div
                     className="grid grid-cols-2 gap-y-4 gap-x-8 border-t border-gray-100 dark:border-point/20 pt-6"
-                    variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 }, dimmed: { opacity: 0.8 } }}
+                    variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
                 >
                     <div>
                         <h4 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide mb-1">주요 경력</h4>
@@ -288,7 +275,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                 {lawyer.isOnline && (
                     <motion.div
                         className="mt-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-4 border border-emerald-200/60 dark:border-emerald-700/40"
-                        variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { delay: 0.3 } }, dimmed: { opacity: 0.6 } }}
+                        variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { delay: 0.3 } } }}
                     >
                         <div className="flex items-center gap-3">
                             <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 dark:bg-emerald-800/40 rounded-full flex items-center justify-center">
@@ -318,7 +305,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
                 {/* Contact Actions */}
                 <motion.div
                     className="grid grid-cols-4 gap-2 mt-8"
-                    variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 }, dimmed: { opacity: 0.5 } }}
+                    variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
                 >
                     <Link
                         href={`/lawyer/${lawyer.id}`}

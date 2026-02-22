@@ -243,7 +243,7 @@ async def startup_event():
         try:
             # Launch chat_server.py as a separate process
             # We use distinct Popen to let it run independent of this process loop
-            subprocess.Popen([sys.executable, "backend/chat_server.py"])
+            subprocess.Popen([sys.executable, "chat_server.py"])
             print("Chat server started successfully. (Reload Triggered)")
         except Exception as e:
             print(f"Failed to start chat server: {e}")
@@ -1560,7 +1560,7 @@ async def signup_lawyer(
     
     file_ext = os.path.splitext(licenseImage.filename)[1]
     filename = f"{email}_license{file_ext}"
-    file_path = os.path.join(upload_dir, filename)
+    file_path = os.path.join(upload_dir, filename) # Re-added this line
     
     try:
         with open(file_path, "wb") as buffer:

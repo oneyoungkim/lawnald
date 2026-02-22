@@ -7,6 +7,7 @@ import TypingText from "../components/TypingText";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 import LawyerCard from "../components/LawyerCard";
+import StickyCardWrapper from "../components/StickyCardWrapper";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -136,85 +137,104 @@ function ResultPageContent() {
                     </Link>
                 </div>
 
-                {/* Loading State */}
-                {loading && (
-                    <div className="flex flex-col items-center justify-center py-20 animate-fade-in-up">
-                        <div className="w-16 h-16 border-4 border-[#1E293B]/20 border-t-[#1E293B] rounded-full animate-spin mb-8" />
-                        <h2 className="text-2xl font-bold text-[#1E293B] dark:text-white mb-2">AI 로날드가 법률 데이터를 분석 중입니다</h2>
-                        <TypingText
-                            text="판례 데이터베이스 대조 중... 유사 승소 사례 검색 중... 변호사 전문성 매칭 중..."
-                            className="text-[#64748B] dark:text-zinc-400 text-sm font-mono"
-                            speed={0.05}
-                        />
-                    </div>
-                )}
+                <AnimatePresence mode="wait">
+                    {/* Loading State */}
+                    {loading && (
+                        <motion.div
+                            key="loading"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="flex flex-col items-center justify-center py-20"
+                        >
+                            <div className="w-16 h-16 border-4 border-[#1E293B]/20 border-t-[#1E293B] rounded-full animate-spin mb-8" />
+                            <h2 className="text-2xl font-bold text-[#1E293B] dark:text-white mb-2">AI 로날드가 법률 데이터를 분석 중입니다</h2>
+                            <TypingText
+                                text="판례 데이터베이스 대조 중... 유사 승소 사례 검색 중... 변호사 전문성 매칭 중..."
+                                className="text-[#64748B] dark:text-zinc-400 text-sm font-mono"
+                                speed={0.05}
+                            />
+                        </motion.div>
+                    )}
 
-                {/* Error State */}
-                {error && (
-                    <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-lg text-center animate-fade-in-up">
-                        {error}
-                    </div>
-                )}
+                    {/* Error State */}
+                    {error && (
+                        <motion.div
+                            key="error"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-lg text-center"
+                        >
+                            {error}
+                        </motion.div>
+                    )}
 
-                {/* AI Case Insight (Briefing Style) */}
-                {!loading && !error && analysisDetails && (
-                    <div className="mb-16 animate-fade-in-up">
-                        <div className="bg-white rounded-3xl p-8 md:p-10 shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-gray-100">
-                            {/* Header: Core Summary */}
-                            <div className="mb-10 text-center max-w-3xl mx-auto">
-                                <h2 className="text-3xl md:text-3xl font-serif font-medium text-main leading-tight tracking-tight mb-4 break-keep">
-                                    {analysisDetails.one_line_summary || analysis}
-                                </h2>
-                                <p className="text-[#86868b] text-sm font-medium tracking-wide uppercase">
-                                    AI Legal Briefing • {analysisDetails.urgency} 상황입니다
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 border-t border-gray-100 pt-10">
-                                {/* Left: Key Issues */}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-[#1d1d1f] mb-6 flex items-center gap-2">
-                                        핵심 쟁점
-                                    </h3>
-                                    <ul className="space-y-4">
-                                        {(analysisDetails.key_issues?.length > 0 ? analysisDetails.key_issues : [analysisDetails.core_risk].filter(Boolean)).map((issue: string, idx: number) => (
-                                            <li key={idx} className="flex cross-start gap-3 text-[15px] leading-relaxed text-[#424245]">
-                                                <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[#1d1d1f] mt-2.5" />
-                                                <span>{issue}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                    {/* AI Case Insight (Briefing Style) */}
+                    {!loading && !error && analysisDetails && (
+                        <motion.div
+                            key="insight"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.1 }}
+                            className="mb-16"
+                        >
+                            <div className="bg-white rounded-3xl p-8 md:p-10 shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-gray-100">
+                                {/* Header: Core Summary */}
+                                <div className="mb-10 text-center max-w-3xl mx-auto">
+                                    <h2 className="text-3xl md:text-3xl font-serif font-medium text-main leading-tight tracking-tight mb-4 break-keep">
+                                        {analysisDetails.one_line_summary || analysis}
+                                    </h2>
+                                    <p className="text-[#86868b] text-sm font-medium tracking-wide uppercase">
+                                        AI Legal Briefing • {analysisDetails.urgency} 상황입니다
+                                    </p>
                                 </div>
 
-                                {/* Right: Action Plan */}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-[#1d1d1f] mb-6 flex items-center gap-2">
-                                        대응 및 행동 제안
-                                    </h3>
-                                    <div className="space-y-5">
-                                        {(analysisDetails.action_checklist?.length > 0 ? analysisDetails.action_checklist : [analysisDetails.time_strategy].filter(Boolean)).map((action: string, idx: number) => (
-                                            <div key={idx} className="flex gap-4 items-start group">
-                                                <div className="flex-shrink-0 w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center mt-0.5">
-                                                    <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 transition-colors">{idx + 1}</span>
-                                                </div>
-                                                <p className="text-[15px] leading-relaxed text-[#424245] break-keep">
-                                                    {action}
-                                                </p>
-                                            </div>
-                                        ))}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 border-t border-gray-100 pt-10">
+                                    {/* Left: Key Issues */}
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-[#1d1d1f] mb-6 flex items-center gap-2">
+                                            핵심 쟁점
+                                        </h3>
+                                        <ul className="space-y-4">
+                                            {(analysisDetails.key_issues?.length ? analysisDetails.key_issues : [analysisDetails.core_risk].filter(Boolean)).map((issue: string, idx: number) => (
+                                                <li key={idx} className="flex cross-start gap-3 text-[15px] leading-relaxed text-[#424245]">
+                                                    <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[#1d1d1f] mt-2.5" />
+                                                    <span>{issue}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
 
-                                        {/* Fallback/Additional Time Strategy if not in checklist */}
-                                        {!analysisDetails.action_checklist && analysisDetails.time_strategy && (
-                                            <div className="mt-4 p-4 bg-gray-50 dark:bg-zinc-800/50 rounded-xl text-sm text-[#6e6e73] dark:text-zinc-400 leading-relaxed">
-                                                💡 {analysisDetails.time_strategy}
-                                            </div>
-                                        )}
+                                    {/* Right: Action Plan */}
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-[#1d1d1f] mb-6 flex items-center gap-2">
+                                            대응 및 행동 제안
+                                        </h3>
+                                        <div className="space-y-5">
+                                            {(analysisDetails.action_checklist?.length ? analysisDetails.action_checklist : [analysisDetails.time_strategy].filter(Boolean)).map((action: string, idx: number) => (
+                                                <div key={idx} className="flex gap-4 items-start group">
+                                                    <div className="flex-shrink-0 w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center mt-0.5">
+                                                        <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 transition-colors">{idx + 1}</span>
+                                                    </div>
+                                                    <p className="text-[15px] leading-relaxed text-[#424245] break-keep">
+                                                        {action}
+                                                    </p>
+                                                </div>
+                                            ))}
+
+                                            {/* Fallback/Additional Time Strategy if not in checklist */}
+                                            {!analysisDetails.action_checklist && analysisDetails.time_strategy && (
+                                                <div className="mt-4 p-4 bg-gray-50 dark:bg-zinc-800/50 rounded-xl text-sm text-[#6e6e73] dark:text-zinc-400 leading-relaxed">
+                                                    💡 {analysisDetails.time_strategy}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Filters */}
                 <div className="flex flex-wrap gap-2 mb-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -276,13 +296,11 @@ function ResultPageContent() {
                     </div>
                 )}
 
-                <div ref={lawyerListRef} className="space-y-4">
-                    {lawyers.map((lawyer) => (
-                        <div
-                            key={lawyer.id}
-                        >
-                            <LawyerCard lawyer={lawyer} query={query || ""} />
-                        </div>
+                <div ref={lawyerListRef} className="relative">
+                    {lawyers.map((lawyer, index) => (
+                        <StickyCardWrapper key={lawyer.id} index={index} total={lawyers.length}>
+                            <LawyerCard lawyer={lawyer} query={query || ""} index={index} />
+                        </StickyCardWrapper>
                     ))}
                 </div>
             </div>
