@@ -6,7 +6,8 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 
-CASES_FILE = "cases.json"
+_DIR = os.path.dirname(os.path.abspath(__file__))
+CASES_FILE = os.path.join(_DIR, "cases.json")
 
 # Data Models
 class Case(BaseModel):
@@ -63,12 +64,15 @@ class CaseManager:
             self._generate_mock_data()
 
     def save_data(self):
-        data = {
-            "cases": [c.dict() for c in self.cases.values()],
-            "deid_cases": [d.dict() for d in self.deid_cases.values()]
-        }
-        with open(CASES_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        try:
+            data = {
+                "cases": [c.dict() for c in self.cases.values()],
+                "deid_cases": [d.dict() for d in self.deid_cases.values()]
+            }
+            with open(CASES_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except OSError as e:
+            print(f"⚠️ cases.py save_data skipped (read-only FS): {e}")
 
     def _generate_mock_data(self):
         # Generate a few sample cases
