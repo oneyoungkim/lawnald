@@ -184,7 +184,7 @@ export default function CaseWorkspacePage() {
                         <div>
                             <h1 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <SparklesIcon className="w-5 h-5 text-violet-500" />
-                                AI 사건 워크스페이스
+                                팀 워크스페이스 · 김도현 변호사
                             </h1>
                         </div>
                     </div>
@@ -328,12 +328,12 @@ export default function CaseWorkspacePage() {
                                         <span className="text-4xl">🧠</span>
                                     </div>
                                     <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
-                                        AI 법률 어시스턴트
+                                        김도현 변호사
                                     </h2>
                                     <p className="text-sm text-gray-400 leading-relaxed">
-                                        사건 내용을 직접 입력하거나,<br />
-                                        왼쪽에 문서를 업로드하여 AI와 대화할 수 있습니다.<br />
-                                        <span className="text-violet-500 font-medium">바로 채팅을 시작해보세요.</span>
+                                        안녕하세요, 같은 팀 동료 김도현입니다.<br />
+                                        사건 자료를 공유하시거나 바로 대화를 시작해주세요.<br />
+                                        <span className="text-violet-500 font-medium">함께 사건을 검토해봅시다.</span>
                                     </p>
                                 </div>
                             </div>
@@ -344,12 +344,12 @@ export default function CaseWorkspacePage() {
                                         <span className="text-4xl">🧠</span>
                                     </div>
                                     <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
-                                        AI 법률 어시스턴트
+                                        김도현 변호사
                                     </h2>
                                     <p className="text-sm text-gray-400 leading-relaxed">
-                                        사건 내용을 직접 입력하거나,<br />
-                                        왼쪽에 문서를 업로드하여 AI와 대화할 수 있습니다.<br />
-                                        <span className="text-violet-500 font-medium">바로 채팅을 시작해보세요.</span>
+                                        안녕하세요, 같은 팀 동료 김도현입니다.<br />
+                                        사건 자료를 공유하시거나 바로 대화를 시작해주세요.<br />
+                                        <span className="text-violet-500 font-medium">함께 사건을 검토해봅시다.</span>
                                     </p>
                                 </div>
                             </div>
@@ -363,7 +363,7 @@ export default function CaseWorkspacePage() {
                                         {msg.role === 'assistant' && (
                                             <div className="flex items-center gap-1.5 mb-2">
                                                 <SparklesIcon className="w-3.5 h-3.5 text-violet-500" />
-                                                <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">AI 변호사</span>
+                                                <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">김도현 변호사</span>
                                             </div>
                                         )}
                                         <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-white' : 'text-gray-800 dark:text-gray-200'
@@ -385,7 +385,7 @@ export default function CaseWorkspacePage() {
                                 <div className="bg-white dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 rounded-2xl rounded-bl-md px-5 py-4 shadow-sm">
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <SparklesIcon className="w-3.5 h-3.5 text-violet-500" />
-                                        <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">AI 분석 중</span>
+                                        <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">김도현 변호사 입력 중</span>
                                     </div>
                                     <div className="flex gap-1.5">
                                         <div className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -407,7 +407,7 @@ export default function CaseWorkspacePage() {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="사건에 대해 질문하세요... (Shift+Enter로 줄바꿈)"
+                                placeholder="사건에 대해 이야기해주세요... (Shift+Enter로 줄바꿈)"
                                 disabled={isSending}
                                 rows={1}
                                 className="flex-1 px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
