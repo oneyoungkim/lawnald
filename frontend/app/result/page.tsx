@@ -236,50 +236,41 @@ function ResultPageContent() {
                     )}
                 </AnimatePresence>
 
-                {/* Filters */}
-                <div className="flex flex-wrap gap-2 mb-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                    <select
-                        value={selectedLocation}
-                        onChange={(e) => setSelectedLocation(e.target.value)}
-                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
-                    >
-                        <option value="">지역 전체</option>
-                        <option value="서울">서울</option>
-                        <option value="경기">경기</option>
-                        <option value="인천">인천</option>
-                        <option value="부산">부산</option>
-                        <option value="대구">대구</option>
-                        <option value="광주">광주</option>
-                        <option value="대전">대전</option>
-                    </select>
-
-                    <select
-                        value={selectedGender}
-                        onChange={(e) => setSelectedGender(e.target.value)}
-                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
-                    >
-                        <option value="">성별 전체</option>
-                        <option value="Male">남성</option>
-                        <option value="Female">여성</option>
-                    </select>
-
-                    <select
-                        value={selectedEducation}
-                        onChange={(e) => setSelectedEducation(e.target.value)}
-                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
-                    >
-                        <option value="">출신 전체</option>
-                        <option value="법학전문대학원">로스쿨</option>
-                    </select>
-
-                    <select
-                        value={selectedCareer}
-                        onChange={(e) => setSelectedCareer(e.target.value)}
-                        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-1 focus:ring-lawnald text-black"
-                    >
-                        <option value="">경력 전체</option>
-                        <option value="대형 로펌 출신">대형 로펌 출신</option>
-                    </select>
+                {/* Filters — Pill/Chip Style */}
+                <div className="mb-8 space-y-3">
+                    {/* Location */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider w-12 shrink-0">지역</span>
+                        {[{ v: "", l: "전체" }, { v: "서울", l: "서울" }, { v: "경기", l: "경기" }, { v: "인천", l: "인천" }, { v: "부산", l: "부산" }, { v: "대구", l: "대구" }, { v: "광주", l: "광주" }, { v: "대전", l: "대전" }].map(o => (
+                            <button key={o.v} type="button" onClick={() => setSelectedLocation(o.v)}
+                                className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${selectedLocation === o.v ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
+                            >{o.l}</button>
+                        ))}
+                    </div>
+                    {/* Gender */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider w-12 shrink-0">성별</span>
+                        {[{ v: "", l: "전체" }, { v: "Male", l: "남성" }, { v: "Female", l: "여성" }].map(o => (
+                            <button key={o.v} type="button" onClick={() => setSelectedGender(o.v)}
+                                className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${selectedGender === o.v ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
+                            >{o.l}</button>
+                        ))}
+                    </div>
+                    {/* Education & Career (combined row) */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider w-12 shrink-0">기타</span>
+                        {[{ v: "", l: "모두 보기", setter: () => { setSelectedEducation(""); setSelectedCareer(""); } }].map(o => (
+                            <button key="all" type="button" onClick={o.setter}
+                                className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${!selectedEducation && !selectedCareer ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
+                            >{o.l}</button>
+                        ))}
+                        <button type="button" onClick={() => setSelectedEducation(selectedEducation === "법학전문대학원" ? "" : "법학전문대학원")}
+                            className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${selectedEducation === "법학전문대학원" ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
+                        >🎓 로스쿨 출신</button>
+                        <button type="button" onClick={() => setSelectedCareer(selectedCareer === "대형 로펌 출신" ? "" : "대형 로펌 출신")}
+                            className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${selectedCareer === "대형 로펌 출신" ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
+                        >🏢 대형 로펌 경력</button>
+                    </div>
                 </div>
 
 

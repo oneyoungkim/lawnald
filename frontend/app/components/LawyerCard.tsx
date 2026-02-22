@@ -216,8 +216,8 @@ export default function LawyerCard({ lawyer, query, index = 0 }: { lawyer: Lawye
                     {lawyer.bestCase && (
                         <div className="mb-4 bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
                             <div className="flex items-center gap-2 mb-2">
-                                <ScaleIcon className="w-4 h-4 text-lawnald" />
-                                <span className="text-xs font-semibold text-lawnald uppercase tracking-wide">AI 추천 유사 승소 사례</span>
+                                <ScaleIcon className="w-4 h-4 text-[#14213D] dark:text-[#C5A065]" />
+                                <span className="text-xs font-semibold text-[#14213D] dark:text-[#C5A065] uppercase tracking-wide">AI 추천 유사 승소 사례</span>
                             </div>
                             <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{lawyer.bestCase.title}</h4>
                             <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
@@ -254,16 +254,16 @@ export default function LawyerCard({ lawyer, query, index = 0 }: { lawyer: Lawye
                     variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
                 >
                     <div>
-                        <h4 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide mb-1">주요 경력</h4>
-                        <p className="text-sm font-medium text-zinc-500 truncate" title={lawyer.career}>
+                        <h4 className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">주요 경력</h4>
+                        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 truncate" title={lawyer.career}>
                             {lawyer.career || "이력 정보가 없습니다."}
                         </p>
                     </div>
                     <div>
-                        <h4 className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wide mb-1">전문 분야</h4>
+                        <h4 className="text-[11px] font-semibold text-[#86868b] dark:text-zinc-400 uppercase tracking-wide mb-1">전문 분야</h4>
                         <div className="flex flex-wrap gap-2">
                             {lawyer.expertise.slice(0, 3).map((field, i) => (
-                                <span key={i} className="text-sm font-medium text-zinc-600 bg-point/10 px-2 py-0.5 rounded">
+                                <span key={i} className="text-sm font-medium text-zinc-600 dark:text-zinc-300 bg-point/10 dark:bg-white/10 px-2 py-0.5 rounded">
                                     #{field}
                                 </span>
                             ))}

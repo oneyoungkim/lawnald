@@ -3,12 +3,20 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+const SUGGESTED_QUERIES = [
+    "보이스피싱 피해",
+    "이혼 재산분할",
+    "교통사고 합의금",
+    "임대차 보증금 미반환",
+    "직장 내 괴롭힘",
+    "상속 분쟁",
+];
+
 export default function SearchForm() {
     const [query, setQuery] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [hasTyped, setHasTyped] = useState(false);
-    const [progress, setProgress] = useState(0);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const router = useRouter();
 
@@ -21,7 +29,6 @@ export default function SearchForm() {
         }
     }, [query]);
 
-    // Handle typing "breathing" effect trigger (one-time)
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setQuery(e.target.value);
         if (!hasTyped && e.target.value.length > 0) {
@@ -35,29 +42,15 @@ export default function SearchForm() {
             textareaRef.current?.focus();
             return;
         }
-
         setIsAnalyzing(true);
-        setProgress(0);
+        router.push(`/result?q=${encodeURIComponent(query)}`);
+    };
 
-        // Simulate progress calculation simulating analysis time
-        // Total time approx 2000ms - 2500ms
-        const duration = 2000;
-        const intervalTime = 20;
-        const steps = duration / intervalTime;
-        let currentStep = 0;
-
-        const interval = setInterval(() => {
-            currentStep++;
-            const newProgress = Math.min((currentStep / steps) * 100, 100);
-
-            setProgress(newProgress);
-
-            if (currentStep >= steps) {
-                clearInterval(interval);
-                const url = `/result?q=${encodeURIComponent(query)}`;
-                router.push(url);
-            }
-        }, intervalTime);
+    const handleTagClick = (tag: string) => {
+        setQuery(tag);
+        setHasTyped(true);
+        // Focus textarea so user can append more details
+        textareaRef.current?.focus();
     };
 
     const hasText = query.length > 0;
@@ -101,7 +94,23 @@ export default function SearchForm() {
                     />
                 </div>
 
-                <div className="flex flex-col items-center gap-6 mt-8">
+                {/* Suggested query tags */}
+                {!hasText && (
+                    <div className="flex flex-wrap gap-2 justify-center px-2">
+                        {SUGGESTED_QUERIES.map(tag => (
+                            <button
+                                key={tag}
+                                type="button"
+                                onClick={() => handleTagClick(tag)}
+                                className="px-3 py-1.5 text-xs sm:text-sm text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-800 border border-gray-200 rounded-full transition-all duration-200"
+                            >
+                                {tag}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                <div className="flex flex-col items-center gap-6 mt-4">
                     <button
                         type="submit"
                         disabled={isAnalyzing || !hasText}
@@ -117,23 +126,20 @@ export default function SearchForm() {
                             ${hasText ? 'opacity-100 hover:bg-main/90 hover:shadow-xl active:translate-y-[1px]' : 'opacity-85'}
                         `}
                     >
-                        {isAnalyzing && (
-                            <div
-                                className="absolute left-0 top-0 h-full bg-point transition-all duration-100 ease-linear"
-                                style={{ width: `${progress}%` }}
-                            />
-                        )}
-
                         <div className="relative z-10 flex items-center gap-2">
                             {isAnalyzing ? (
-                                <span>분석 중 {Math.round(progress)}%</span>
+                                <>
+                                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                    </svg>
+                                    <span>분석 중...</span>
+                                </>
                             ) : (
                                 <span>변호사 추천받기</span>
                             )}
                         </div>
                     </button>
-
-
                 </div>
             </form>
         </div>
