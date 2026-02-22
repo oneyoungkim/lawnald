@@ -4,7 +4,7 @@ import { LawyerDetail } from "../types";
 
 async function getLawyer(id: string): Promise<LawyerDetail | null> {
     try {
-        const res = await fetch(`http://127.0.0.1:8000/api/public/lawyers/${id}`, { cache: 'no-store' });
+        const res = await fetch(`https://lawnald.com/api/public/lawyers/${id}`, { cache: 'no-store' });
         if (!res.ok) return null;
         return res.json();
     } catch (e) {

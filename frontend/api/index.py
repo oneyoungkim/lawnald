@@ -446,6 +446,33 @@ def get_online_lawyers():
             })
     return online
 
+@app.get("/api/public/lawyers/{lawyer_id}")
+def get_public_lawyer_detail(lawyer_id: str):
+    """Public endpoint for lawyer profile page"""
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer not found")
+    # Return full public profile data
+    return {
+        "id": lawyer["id"],
+        "name": lawyer["name"],
+        "firm": lawyer.get("firm", ""),
+        "location": lawyer.get("location", ""),
+        "career": lawyer.get("career", ""),
+        "education": lawyer.get("education", ""),
+        "expertise": lawyer.get("expertise", []),
+        "cases": lawyer.get("cases", []),
+        "content_items": lawyer.get("content_items", []),
+        "imageUrl": lawyer.get("imageUrl"),
+        "cutoutImageUrl": lawyer.get("cutoutImageUrl"),
+        "phone": lawyer.get("phone"),
+        "homepage": lawyer.get("homepage"),
+        "kakao_id": lawyer.get("kakao_id"),
+        "introduction_short": lawyer.get("introduction_short", ""),
+        "introduction_long": lawyer.get("introduction_long", ""),
+        "expertise_score": lawyer.get("expertise_score"),
+    }
+
 # --- SEO Analysis Endpoints ---
 from seo_helper import seo_helper
 

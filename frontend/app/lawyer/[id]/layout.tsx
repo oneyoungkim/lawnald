@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 async function getLawyer(id: string): Promise<LawyerDetail | null> {
     try {
-        const res = await fetch(`http://127.0.0.1:8000/api/public/lawyers/${id}`, { cache: 'no-store' });
+        const res = await fetch(`https://lawnald.com/api/public/lawyers/${id}`, { cache: 'no-store' });
         if (!res.ok) return null;
         return res.json();
     } catch (e) {
@@ -55,7 +55,7 @@ export default async function LawyerLayout({
         if (!url) return "/lawyers/default_avatar.png";
         if (url.startsWith("/lawyers/")) return url;
         if (url.startsWith(`${API_BASE}`)) return url.replace(`${API_BASE}`, `${API_BASE}`);
-        if (url.startsWith("/")) return `http://127.0.0.1:8000${url}`;
+        if (url.startsWith("/")) return `https://lawnald.com${url}`;
         return url;
     };
 
