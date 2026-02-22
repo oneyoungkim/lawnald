@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from 'react';
 import { XMarkIcon, SparklesIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
@@ -28,7 +30,7 @@ export default function SEOPreCheckModal({ isOpen, onClose, onComplete }: SEOPre
     useEffect(() => {
         if (category) {
             // Fetch keywords based on category
-            fetch(`http://localhost:8000/api/seo/keywords?category=${category}`)
+            fetch(`${API_BASE}/api/seo/keywords?category=${category}`)
                 .then(res => res.json())
                 .then(data => setSuggestedKeywords(data.keywords || []))
                 .catch(err => console.error("Failed to fetch keywords", err));

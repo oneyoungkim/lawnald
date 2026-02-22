@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState, useRef } from "react";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -39,7 +41,7 @@ export default function UserChatWidget({ lawyerId, lawyerName, isOpen, onClose }
     useEffect(() => {
         if (!isOpen || !clientId) return;
 
-        fetch(`http://localhost:8000/api/chats/${encodeURIComponent(lawyerId)}/${clientId}/messages`)
+        fetch(`${API_BASE}/api/chats/${encodeURIComponent(lawyerId)}/${clientId}/messages`)
             .then(res => res.json())
             .then(data => setMessages(data))
             .catch(console.error);

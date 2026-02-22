@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -44,7 +45,7 @@ export default function ConsultationDetailPage() {
             try {
                 // Fetch all for this lawyer and filter client-side
                 // (Since we haven't implemented a specific GET /id endpoint yet)
-                const res = await fetch(`http://localhost:8000/api/consultations?lawyer_id=${lawyer.id}`);
+                const res = await fetch(`${API_BASE}/api/consultations?lawyer_id=${lawyer.id}`);
                 if (res.ok) {
                     const data: Consultation[] = await res.json();
                     const found = data.find((c) => c.id === params.id);
@@ -75,7 +76,7 @@ export default function ConsultationDetailPage() {
         setConsultation({ ...consultation, status: newStatus });
 
         try {
-            const res = await fetch(`http://localhost:8000/api/consultations/${consultation.id}`, {
+            const res = await fetch(`${API_BASE}/api/consultations/${consultation.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

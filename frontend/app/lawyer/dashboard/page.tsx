@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -70,11 +72,11 @@ function LawyerDashboardContent() {
             setLawyer(parsedLawyer);
 
             Promise.all([
-                fetch(`http://localhost:8000/api/lawyers/${parsedLawyer.id}/leads`).then(res => res.json()),
-                fetch(`http://localhost:8000/api/consultations?lawyer_id=${parsedLawyer.id}`).then(res => res.json()),
-                fetch(`http://localhost:8000/api/cases/my?lawyer_id=${parsedLawyer.id}`).then(res => res.json()), // Fetch My Cases (includes pending)
-                fetch(`http://localhost:8000/api/dashboard/actions?lawyer_id=${parsedLawyer.id}`).then(res => res.json()),
-                fetch(`http://localhost:8000/api/stats/monthly`).then(res => res.json())
+                fetch(`${API_BASE}/api/lawyers/${parsedLawyer.id}/leads`).then(res => res.json()),
+                fetch(`${API_BASE}/api/consultations?lawyer_id=${parsedLawyer.id}`).then(res => res.json()),
+                fetch(`${API_BASE}/api/cases/my?lawyer_id=${parsedLawyer.id}`).then(res => res.json()), // Fetch My Cases (includes pending)
+                fetch(`${API_BASE}/api/dashboard/actions?lawyer_id=${parsedLawyer.id}`).then(res => res.json()),
+                fetch(`${API_BASE}/api/stats/monthly`).then(res => res.json())
             ]).then(([leadsData, consultsData, casesData, actionsData, statsData]) => {
                 setLeads(leadsData);
                 setConsultations(consultsData);

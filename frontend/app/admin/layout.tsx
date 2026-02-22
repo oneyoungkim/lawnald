@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -26,7 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
 
         // 토큰 서버 검증
-        fetch("http://localhost:8000/api/admin/blog/auth/verify", {
+        fetch("${API_BASE}/api/admin/blog/auth/verify", {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => {

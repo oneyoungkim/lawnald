@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -72,7 +74,7 @@ export default function CaseWorkspacePage() {
             const formData = new FormData();
             fileArray.forEach(f => formData.append('files', f));
 
-            const res = await fetch('http://localhost:8000/api/case/upload', {
+            const res = await fetch('${API_BASE}/api/case/upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -118,7 +120,7 @@ export default function CaseWorkspacePage() {
         setIsSending(true);
 
         try {
-            const res = await fetch('http://localhost:8000/api/case/chat', {
+            const res = await fetch('${API_BASE}/api/case/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

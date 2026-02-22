@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,7 +38,7 @@ export default function PricingPage() {
     }, []);
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/billing/founder-count")
+        fetch("${API_BASE}/api/billing/founder-count")
             .then((res) => res.json())
             .then(setFounderData)
             .catch(() =>
@@ -65,7 +67,7 @@ export default function PricingPage() {
         setActivating(true);
         try {
             const endpoint = plan === "founder" ? "activate-founder" : "activate-standard";
-            const res = await fetch(`http://localhost:8000/api/billing/${endpoint}`, {
+            const res = await fetch(`${API_BASE}/api/billing/${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ lawyer_id: lawyerId }),

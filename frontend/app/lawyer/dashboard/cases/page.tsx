@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -88,7 +90,7 @@ export default function CaseManagementPage() {
 
     const fetchCases = async (id: string) => {
         try {
-            const res = await fetch(`http://localhost:8000/api/lawyers/${id}/cases`);
+            const res = await fetch(`${API_BASE}/api/lawyers/${id}/cases`);
             if (res.ok) {
                 const data = await res.json();
                 // Map API data to CaseItem
@@ -130,7 +132,7 @@ export default function CaseManagementPage() {
         if (!confirm("정말 이 승소사례를 삭제하시겠습니까? 복구할 수 없습니다.")) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/lawyers/${lawyerId}/content/${id}`, {
+            const res = await fetch(`${API_BASE}/api/lawyers/${lawyerId}/content/${id}`, {
                 method: "DELETE"
             });
             if (res.ok) {

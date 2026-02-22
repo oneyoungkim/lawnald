@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -111,7 +113,7 @@ export default function EvidenceProcessorPage() {
                 formData.append('files', f.file);
             });
 
-            const res = await fetch('http://localhost:8000/api/merge-evidence', {
+            const res = await fetch('${API_BASE}/api/merge-evidence', {
                 method: 'POST',
                 body: formData,
             });

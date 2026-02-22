@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -40,8 +42,8 @@ function ConsultationListContent() {
 
                 // Fetch Consultations and Chats in parallel
                 const [consultRes, chatRes] = await Promise.all([
-                    fetch(`http://localhost:8000/api/consultations?${params.toString()}`),
-                    fetch(`http://localhost:8000/api/lawyers/${lawyer.id}/chats`)
+                    fetch(`${API_BASE}/api/consultations?${params.toString()}`),
+                    fetch(`${API_BASE}/api/lawyers/${lawyer.id}/chats`)
                 ]);
 
                 let consultationsData: any[] = [];

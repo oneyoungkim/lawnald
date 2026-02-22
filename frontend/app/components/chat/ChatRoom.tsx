@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState, useRef } from "react";
 
 interface Message {
@@ -23,7 +25,7 @@ export default function ChatRoom({ lawyerId, clientId, onClose }: ChatRoomProps)
 
     // Fetch history
     useEffect(() => {
-        fetch(`http://localhost:8000/api/chats/${encodeURIComponent(lawyerId)}/${clientId}/messages`)
+        fetch(`${API_BASE}/api/chats/${encodeURIComponent(lawyerId)}/${clientId}/messages`)
             .then(res => res.json())
             .then(data => setMessages(data))
             .catch(console.error);

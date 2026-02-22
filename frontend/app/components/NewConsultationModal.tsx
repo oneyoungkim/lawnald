@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -21,7 +23,7 @@ export default function NewConsultationModal({ isOpen, onClose, lawyerId }: NewC
 
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8000/api/consultations", {
+            const res = await fetch("${API_BASE}/api/consultations", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

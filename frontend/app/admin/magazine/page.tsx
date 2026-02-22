@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import {
     CheckCircleIcon,
@@ -30,7 +32,7 @@ export default function AdminMagazinePage() {
     const fetchItems = async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8000/api/admin/magazine/all");
+            const res = await fetch("${API_BASE}/api/admin/magazine/all");
             if (res.ok) {
                 const data = await res.json();
                 setItems(data);
@@ -48,7 +50,7 @@ export default function AdminMagazinePage() {
 
     const handleToggleVisibility = async (id: string, currentStatus: boolean) => {
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/content/${id}/toggle-visibility`, {
+            const res = await fetch(`${API_BASE}/api/admin/content/${id}/toggle-visibility`, {
                 method: "POST"
             });
             if (res.ok) {
@@ -65,7 +67,7 @@ export default function AdminMagazinePage() {
         if (!confirm("정말로 이 콘텐츠를 삭제하시겠습니까? (복구 불가)")) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/content/${id}`, {
+            const res = await fetch(`${API_BASE}/api/admin/content/${id}`, {
                 method: "DELETE"
             });
             if (res.ok) {

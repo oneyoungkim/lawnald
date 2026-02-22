@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 interface ChatSession {
@@ -20,7 +22,7 @@ export default function ChatList({ lawyerId, onSelectChat, refreshTrigger }: Cha
 
     useEffect(() => {
         const fetchChats = () => {
-            fetch(`http://localhost:8000/api/lawyers/${encodeURIComponent(lawyerId)}/chats`)
+            fetch(`${API_BASE}/api/lawyers/${encodeURIComponent(lawyerId)}/chats`)
                 .then(res => res.json())
                 .then(data => setChats(data))
                 .catch(console.error);

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeftIcon, CheckCircleIcon } from "@heroicons/react/24/solid";
@@ -38,7 +40,7 @@ export default function LawyerSubmitPage() {
         try {
             const tags = formData.topic_tags.split(",").map(t => t.trim()).filter(t => t);
 
-            const res = await fetch(`http://localhost:8000/api/lawyers/${lawyerId}/submit`, {
+            const res = await fetch(`${API_BASE}/api/lawyers/${lawyerId}/submit`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

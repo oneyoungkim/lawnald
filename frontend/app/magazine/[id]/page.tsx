@@ -1,3 +1,4 @@
+import { API_BASE } from "@/lib/api";
 import { Metadata } from 'next';
 import Image from "next/image";
 import Link from "next/link";
@@ -111,8 +112,8 @@ export default async function ArticlePage({ params }: Props) {
     // Helper to normalize image URL (avoid localhost ipv6 issues)
     const normalizeImage = (url?: string) => {
         if (!url) return undefined;
-        if (url.startsWith("http://localhost:8000")) {
-            return url.replace("http://localhost:8000", "http://127.0.0.1:8000");
+        if (url.startsWith(`${API_BASE}`)) {
+            return url.replace(`${API_BASE}`, `${API_BASE}`);
         }
         if (url.startsWith("/")) {
             return `http://127.0.0.1:8000${url}`;

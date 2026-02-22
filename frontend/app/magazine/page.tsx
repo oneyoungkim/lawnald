@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
@@ -35,7 +37,7 @@ export default function MagazinePage() {
     const categories = ["전체", "승소사례", "법률칼럼", "성범죄", "이혼", "부동산", "손해배상"];
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/magazine")
+        fetch("${API_BASE}/api/magazine")
             .then(res => res.json())
             .then(data => {
                 setArticles(data);

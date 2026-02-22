@@ -1,0 +1,11 @@
+fastapi
+pydantic
+numpy
+scikit-learn
+openai
+python-multipart
+Pillow
+pypdf
+pdfplumber
+beautifulsoup4
+python-dotenv

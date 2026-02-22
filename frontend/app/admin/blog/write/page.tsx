@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +36,7 @@ export default function AdminBlogWritePage() {
     useEffect(() => {
         if (!editId) return;
         setLoading(true);
-        fetch(`http://localhost:8000/api/admin/blog/posts/${editId}`)
+        fetch(`${API_BASE}/api/admin/blog/posts/${editId}`)
             .then((r) => r.json())
             .then((data) => {
                 setTitle(data.title || "");
@@ -60,8 +62,8 @@ export default function AdminBlogWritePage() {
         setSaving(true);
         try {
             const url = isEditMode
-                ? `http://localhost:8000/api/admin/blog/manage/${editId}`
-                : "http://localhost:8000/api/admin/blog/manage";
+                ? `${API_BASE}/api/admin/blog/manage/${editId}`
+                : "${API_BASE}/api/admin/blog/manage";
             const res = await fetch(url, {
                 method: isEditMode ? "PUT" : "POST",
                 headers: {

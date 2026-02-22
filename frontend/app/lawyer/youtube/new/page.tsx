@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -24,7 +26,7 @@ export default function YouTubeRegisterPage() {
         }
 
         try {
-            const res = await fetch(`http://localhost:8000/api/lawyers/${lawyerId}/content`, {
+            const res = await fetch(`${API_BASE}/api/lawyers/${lawyerId}/content`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

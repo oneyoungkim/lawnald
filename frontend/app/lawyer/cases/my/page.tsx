@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PlusIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
@@ -10,7 +12,7 @@ export default function MyCasesPage() {
 
     useEffect(() => {
         // Mock lawyer ID for now
-        fetch("http://localhost:8000/api/cases/my?lawyer_id=lawyer1@example.com")
+        fetch("${API_BASE}/api/cases/my?lawyer_id=lawyer1@example.com")
             .then(res => res.json())
             .then(data => setCases(data))
             .finally(() => setLoading(false));

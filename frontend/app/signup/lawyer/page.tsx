@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +36,7 @@ export default function LawyerSignupPage() {
             });
             data.append("licenseImage", licenseFile);
 
-            const res = await fetch("http://localhost:8000/api/auth/signup/lawyer", {
+            const res = await fetch("${API_BASE}/api/auth/signup/lawyer", {
                 method: "POST",
                 body: data
             });

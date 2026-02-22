@@ -1,3 +1,4 @@
+import { API_BASE } from "@/lib/api";
 import type { Metadata } from "next";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
@@ -40,7 +41,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 async function getPost(id: string): Promise<PostDetail | null> {
     try {
-        const res = await fetch(`http://localhost:8000/api/admin/blog/posts/${id}`, {
+        const res = await fetch(`${API_BASE}/api/admin/blog/posts/${id}`, {
             cache: "no-store",
         });
         if (!res.ok) return null;

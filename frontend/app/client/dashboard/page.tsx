@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -70,9 +72,9 @@ export default function ClientDashboard() {
     const loadData = async (clientId: string) => {
         try {
             const [storiesRes, lawyersRes, chatsRes] = await Promise.all([
-                fetch(`http://localhost:8000/api/client/${clientId}/stories`),
-                fetch("http://localhost:8000/api/lawyers/online"),
-                fetch(`http://localhost:8000/api/client/${clientId}/chats`)
+                fetch(`${API_BASE}/api/client/${clientId}/stories`),
+                fetch("${API_BASE}/api/lawyers/online"),
+                fetch(`${API_BASE}/api/client/${clientId}/chats`)
             ]);
             if (storiesRes.ok) setStories(await storiesRes.json());
             if (lawyersRes.ok) setOnlineLawyers(await lawyersRes.json());
@@ -87,7 +89,7 @@ export default function ClientDashboard() {
         if (!user || !storyTitle.trim() || !storyContent.trim()) return;
         setSubmitting(true);
         try {
-            const res = await fetch("http://localhost:8000/api/client/stories", {
+            const res = await fetch("${API_BASE}/api/client/stories", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

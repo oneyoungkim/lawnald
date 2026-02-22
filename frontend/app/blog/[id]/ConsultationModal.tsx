@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
 import { useState } from 'react';
 import { XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 
@@ -24,7 +25,7 @@ export default function ConsultationModal({ isOpen, onClose, lawyerId, lawyerNam
 
         try {
             // Updated endpoint to use lead generation
-            const response = await fetch(`http://localhost:8000/api/lawyers/${lawyerId}/leads`, {
+            const response = await fetch(`${API_BASE}/api/lawyers/${lawyerId}/leads`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

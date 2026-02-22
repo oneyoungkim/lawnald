@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import LawyerMenu from '../../../components/LawyerMenu';
@@ -75,7 +77,7 @@ export default function LawyerWritePage() {
         const timer = setTimeout(async () => {
             setIsAnalyzing(true);
             try {
-                const res = await fetch('http://localhost:8000/api/seo/analyze', {
+                const res = await fetch('${API_BASE}/api/seo/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ title, content, keyword })
@@ -112,7 +114,7 @@ export default function LawyerWritePage() {
 
         setIsGeneratingThumbnail(true);
         try {
-            const res = await fetch('http://localhost:8000/api/generate-thumbnail', {
+            const res = await fetch('${API_BASE}/api/generate-thumbnail', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: content.slice(0, 1000) })
@@ -137,7 +139,7 @@ export default function LawyerWritePage() {
         if (!confirm("이 글을 발행하시겠습니까?")) return;
 
         try {
-            const res = await fetch('http://localhost:8000/api/admin/magazine', {
+            const res = await fetch('${API_BASE}/api/admin/magazine', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -280,7 +282,7 @@ export default function LawyerWritePage() {
                                 {coverImage && !isGeneratingThumbnail && (
                                     <div className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm mb-4 group">
                                         <img
-                                            src={coverImage.startsWith('/') ? `http://localhost:8000${coverImage}` : coverImage}
+                                            src={coverImage.startsWith('/') ? `${API_BASE}${coverImage}` : coverImage}
                                             alt="커버 이미지"
                                             className="w-full aspect-[16/9] object-cover"
                                         />

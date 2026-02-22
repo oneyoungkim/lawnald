@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -60,7 +62,7 @@ export default function LawyerProfilePage() {
             // Use admin endpoint for updates
             console.log("Updating profile for:", encodedId);
 
-            const res = await fetch(`http://localhost:8000/api/admin/lawyers/${encodedId}`, {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${encodedId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -108,7 +110,7 @@ export default function LawyerProfilePage() {
 
         try {
             setLoading(true);
-            const res = await fetch(`http://localhost:8000/api/lawyers/${encodedId}/upload-photo`, {
+            const res = await fetch(`${API_BASE}/api/lawyers/${encodedId}/upload-photo`, {
                 method: "POST",
                 body: formData
             });
@@ -171,7 +173,7 @@ export default function LawyerProfilePage() {
                                     src={
                                         (lawyer.cutoutImageUrl.startsWith("http")
                                             ? lawyer.cutoutImageUrl
-                                            : `http://127.0.0.1:8000${lawyer.cutoutImageUrl}`
+                                            : `${API_BASE}${lawyer.cutoutImageUrl}`
                                         ).replace("localhost", "127.0.0.1")
                                     }
                                     alt="Profile"

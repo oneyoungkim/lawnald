@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -21,7 +23,7 @@ export default function ActionWidget({ lawyerId }: { lawyerId: string }) {
         if (!lawyerId) return;
 
         // Fetch actions from API
-        fetch(`http://localhost:8000/api/dashboard/actions?lawyer_id=${lawyerId}`)
+        fetch(`${API_BASE}/api/dashboard/actions?lawyer_id=${lawyerId}`)
             .then(res => res.json())
             .then(data => {
                 setActions(data);

@@ -1,0 +1,84 @@
+{
+  "cases": [
+    {
+      "id": "e53bf5fc-4747-4bdc-8277-3c0a36ff8acc",
+      "lawyer_id": "lawyer1@example.com",
+      "client_name": "홍길동",
+      "client_phone": "010-1234-5678",
+      "case_number": "2023드합1005",
+      "judge_name": "김판사",
+      "full_text": "원고 홍길동은 피고 이몽룡을 상대로 이혼을 청구한다. 피고의 부정행위가 명백하고...",
+      "attached_files": [],
+      "internal_notes": "",
+      "submitted_at": "2026-02-14T01:29:18.016309",
+      "status": "approved"
+    },
+    {
+      "id": "dba3c8e4-f7ff-4c12-8a7a-d76bbed1fc3e",
+      "lawyer_id": "lawyer1@example.com",
+      "client_name": "김철수",
+      "client_phone": "010-9876-5432",
+      "case_number": "2024고단502",
+      "judge_name": "이판사",
+      "full_text": "피고인은 2024. 1. 1. 서울 강남구 역삼동 소재 도로에서 혈중알코올농도 0.1% 상태로 운전하다가...",
+      "attached_files": [],
+      "internal_notes": "",
+      "submitted_at": "2026-02-14T01:29:18.016309",
+      "status": "pending"
+    }
+  ],
+  "deid_cases": [
+    {
+      "id": "47b564ea-c37d-401b-92b4-6e9b3277aa34",
+      "original_case_id": "e53bf5fc-4747-4bdc-8277-3c0a36ff8acc",
+      "lawyer_id": "lawyer1@example.com",
+      "title": "배우자의 부정행위로 인한 이혼 및 위자료 청구 승소",
+      "summary": "배우자의 부정행위 증거를 확보하여 이혼 및 위자료 3,000만원을 인정받은 사례",
+      "tags": [
+        "이혼",
+        "부정행위",
+        "위자료"
+      ],
+      "case_type": "가사",
+      "field": "이혼",
+      "result": "승소",
+      "stage": "1심",
+      "facts": [
+        "피고는 혼인 기간 중 부정행위를 저지름",
+        "원고는 증거를 확보하여 소 제기"
+      ],
+      "legal_points": [
+        "민법 제840조 제1호에 해당함 입증",
+        "재산분할 기여도 50% 주장"
+      ],
+      "outcome_reason": "부정행위의 증거가 명백하고 혼인 파탄의 주된 책임이 피고에게 있음",
+      "deid_level": "auto",
+      "is_public": true,
+      "view_count": 0,
+      "approved_at": "2026-02-14T01:29:18.016309"
+    },
+    {
+      "id": "ded9d672-f921-4d43-86d9-49049ee03889",
+      "original_case_id": "dba3c8e4-f7ff-4c12-8a7a-d76bbed1fc3e",
+      "lawyer_id": "lawyer1@example.com",
+      "title": "음주운전 초범 벌금형 선처 방어",
+      "summary": "혈중알코올농도가 높았으나 초범이고 대리운전을 호출하려던 사정을 참작받음",
+      "tags": [
+        "형사",
+        "음주운전",
+        "도로교통법"
+      ],
+      "case_type": "형사",
+      "field": "교통범죄",
+      "result": "벌금형",
+      "stage": "1심",
+      "facts": [],
+      "legal_points": [],
+      "outcome_reason": "",
+      "deid_level": "auto",
+      "is_public": false,
+      "view_count": 0,
+      "approved_at": null
+    }
+  ]
+}

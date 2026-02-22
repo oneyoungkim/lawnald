@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import { CheckIcon, XMarkIcon, ArrowPathIcon, DocumentTextIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
@@ -28,8 +30,8 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             const [subRes, lawyerRes] = await Promise.all([
-                fetch("http://localhost:8000/api/admin/submissions?status=pending"),
-                fetch("http://localhost:8000/api/admin/lawyers/pending")
+                fetch("${API_BASE}/api/admin/submissions?status=pending"),
+                fetch("${API_BASE}/api/admin/lawyers/pending")
             ]);
 
             if (subRes.ok) {
@@ -53,7 +55,7 @@ export default function AdminDashboard() {
 
     const handleAction = async (id: string, action: "approve" | "reject") => {
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/submissions/${id}/${action}`, {
+            const res = await fetch(`${API_BASE}/api/admin/submissions/${id}/${action}`, {
                 method: "POST"
             });
             if (res.ok) {
@@ -68,7 +70,7 @@ export default function AdminDashboard() {
     const handleVerifyLawyer = async (id: string) => {
         if (!confirm("이 변호사를 승인하시겠습니까?")) return;
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/lawyers/${id}/verify`, {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${id}/verify`, {
                 method: "POST"
             });
             if (res.ok) {
@@ -139,7 +141,7 @@ export default function AdminDashboard() {
                                         <div className="flex gap-2">
                                             {lawyer.licenseImageUrl && (
                                                 <a
-                                                    href={`http://localhost:8000${lawyer.licenseImageUrl}`}
+                                                    href={`${API_BASE}${lawyer.licenseImageUrl}`}
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="px-4 py-3 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors text-sm"
@@ -296,7 +298,7 @@ function AdminStats() {
     const [stats, setStats] = useState<any>(null);
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/admin/stats")
+        fetch("${API_BASE}/api/admin/stats")
             .then(res => res.json())
             .then(data => setStats(data))
             .catch(err => console.error(err));

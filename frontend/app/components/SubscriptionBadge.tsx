@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 interface SubscriptionData {
@@ -17,7 +19,7 @@ export default function SubscriptionBadge({ lawyerId }: { lawyerId: string }) {
 
     useEffect(() => {
         if (!lawyerId) return;
-        fetch(`http://localhost:8000/api/billing/status/${lawyerId}`)
+        fetch(`${API_BASE}/api/billing/status/${lawyerId}`)
             .then((res) => res.json())
             .then(setData)
             .catch(() => null);

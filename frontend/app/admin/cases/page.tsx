@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -60,7 +62,7 @@ export default function CaseAdminPage() {
     const fetchCases = async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8000/api/cases/admin");
+            const res = await fetch("${API_BASE}/api/cases/admin");
             if (res.ok) {
                 const data = await res.json();
                 setCases(data);
@@ -80,7 +82,7 @@ export default function CaseAdminPage() {
         if (!confirm(`사례 상태를 '${status}'(으)로 변경하시겠습니까?`)) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/cases/${caseId}/status`, {
+            const res = await fetch(`${API_BASE}/api/cases/${caseId}/status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status, feedback })

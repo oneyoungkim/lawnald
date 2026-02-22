@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import { MagnifyingGlassIcon, FunnelIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 
@@ -26,7 +28,7 @@ export default function CaseArchivePage() {
     const fetchCases = async () => {
         setLoading(true);
         try {
-            let url = "http://localhost:8000/api/cases/archive";
+            let url = "${API_BASE}/api/cases/archive";
             const params = new URLSearchParams();
             if (searchQuery) params.append("query", searchQuery);
             if (selectedField) params.append("field", selectedField);

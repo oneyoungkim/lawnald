@@ -1,3 +1,4 @@
+import { API_BASE } from "@/lib/api";
 import Link from "next/link";
 import Image from "next/image";
 import { Metadata } from "next";
@@ -53,7 +54,7 @@ export default async function LawyerLayout({
     const normalizeImage = (url?: string) => {
         if (!url) return "/lawyers/default_avatar.png";
         if (url.startsWith("/lawyers/")) return url;
-        if (url.startsWith("http://localhost:8000")) return url.replace("http://localhost:8000", "http://127.0.0.1:8000");
+        if (url.startsWith(`${API_BASE}`)) return url.replace(`${API_BASE}`, `${API_BASE}`);
         if (url.startsWith("/")) return `http://127.0.0.1:8000${url}`;
         return url;
     };

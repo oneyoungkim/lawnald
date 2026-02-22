@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -8,7 +10,7 @@ export default function AdminApprovalsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/admin/drafts")
+        fetch("${API_BASE}/api/admin/drafts")
             .then(res => res.json())
             .then(data => {
                 setDrafts(data);
@@ -26,7 +28,7 @@ export default function AdminApprovalsPage() {
         try {
             // For approval, use the new specific endpoint
             if (newStatus === "published") {
-                const res = await fetch(`http://localhost:8000/api/admin/cases/approve`, {
+                const res = await fetch(`${API_BASE}/api/admin/cases/approve`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ case_id: caseId, lawyer_id: lawyerId })

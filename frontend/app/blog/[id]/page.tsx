@@ -1,3 +1,4 @@
+import { API_BASE } from "@/lib/api";
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import BlogClient from './BlogClient';
@@ -99,7 +100,7 @@ async function getLawyerData(id: string): Promise<{ lawyer: LawyerProfile, posts
 
     try {
         console.log(`Fetching data for lawyer: ${decodedId}`);
-        const res = await fetch(`http://localhost:8000/api/public/lawyers/${decodedId}`, { cache: 'no-store' });
+        const res = await fetch(`${API_BASE}/api/public/lawyers/${decodedId}`, { cache: 'no-store' });
 
         if (!res.ok) {
             console.warn(`Backend fetch failed for ${decodedId} (Status: ${res.status}). Using fallback if applicable.`);

@@ -1,6 +1,8 @@
 
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,7 +19,7 @@ export default function AdminPipelinePage() {
         // Let's try fetching the main lawyer for demo.
         const demoLawyerId = "kim_won_young";
 
-        fetch(`http://localhost:8000/api/lawyers/${demoLawyerId}`)
+        fetch(`${API_BASE}/api/lawyers/${demoLawyerId}`)
             .then(res => res.json())
             .then(data => {
                 if (data && data.content_items) {

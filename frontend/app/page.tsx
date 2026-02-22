@@ -4,7 +4,7 @@ import TypingText from "./components/TypingText";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-24 bg-[var(--background)] text-[var(--foreground)] relative selection:bg-accent selection:text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-24 bg-white text-[var(--foreground)] relative selection:bg-accent selection:text-white">
       <header className="absolute top-0 right-0 p-6 flex gap-4 text-sm font-medium z-50">
         <a href="/login" className="px-4 py-2 hover:bg-point/10 rounded-full transition-colors text-main font-semibold">로그인</a>
         <a href="/signup" className="px-4 py-2 bg-main text-white rounded-full hover:bg-main/90 transition-opacity shadow-lg shadow-main/20">회원가입</a>
@@ -30,7 +30,7 @@ export default function Home() {
         <div className="flex flex-col items-center text-center max-w-4xl px-4 -mt-12">
           <TypingText
             text={`당신의 사건에 가장 적합한 변호사, AI 로날드가 찾아드립니다.`}
-            className="text-lg md:text-2xl font-serif text-primary leading-relaxed font-medium whitespace-nowrap"
+            className="text-sm sm:text-lg md:text-2xl font-serif text-primary leading-relaxed font-medium whitespace-nowrap"
             speed={0.08}
           />
         </div>

@@ -1,6 +1,8 @@
 
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloudArrowUpIcon, DocumentTextIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
@@ -32,7 +34,7 @@ export default function CaseUploadPage() {
         formData.append("file", uploadFile);
 
         try {
-            const res = await fetch("http://localhost:8000/api/cases/upload", {
+            const res = await fetch("${API_BASE}/api/cases/upload", {
                 method: "POST",
                 body: formData
             });
@@ -70,7 +72,7 @@ export default function CaseUploadPage() {
                 summary: preview.summary // Short excerpt
             };
 
-            const res = await fetch("http://localhost:8000/api/cases/publish", {
+            const res = await fetch("${API_BASE}/api/cases/publish", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

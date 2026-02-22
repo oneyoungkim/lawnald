@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, PlusIcon } from "@heroicons/react/24/solid";
@@ -41,7 +43,7 @@ export default function AdminLawyersPage() {
         if (!editingLawyer) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/lawyers/${editingLawyer.id}`, {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${editingLawyer.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -74,7 +76,7 @@ export default function AdminLawyersPage() {
         setLoading(true);
         try {
             // Use the direct admin endpoint to get ALL lawyers (raw DB)
-            const res = await fetch("http://localhost:8000/api/admin/lawyers");
+            const res = await fetch("${API_BASE}/api/admin/lawyers");
             if (res.ok) {
                 const data = await res.json();
                 setLawyers(data); // Endpoint returns List[LawyerModel] directly
@@ -94,7 +96,7 @@ export default function AdminLawyersPage() {
         if (!confirm(`${type} ${count}건을 강제로 추가하시겠습니까?`)) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/lawyers/${lawyerId}/content/inject`, {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${lawyerId}/content/inject`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ type, count })

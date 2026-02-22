@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -20,7 +21,7 @@ export default function AdminPostActions({ postId }: { postId: string }) {
         setDeleting(true);
         const token = localStorage.getItem("admin_token");
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/blog/manage/${postId}`, {
+            const res = await fetch(`${API_BASE}/api/admin/blog/manage/${postId}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });

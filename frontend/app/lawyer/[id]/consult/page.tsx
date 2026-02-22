@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -35,7 +36,7 @@ export default function ConsultationRequestPage() {
 
         const fetchLawyer = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/api/public/lawyers/${lawyerId}`);
+                const res = await fetch(`${API_BASE}/api/public/lawyers/${lawyerId}`);
                 if (res.ok) {
                     const data = await res.json();
                     setLawyer(data);
@@ -59,7 +60,7 @@ export default function ConsultationRequestPage() {
 
         setSubmitting(true);
         try {
-            const res = await fetch("http://localhost:8000/api/consultations", {
+            const res = await fetch(`${API_BASE}/api/consultations`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

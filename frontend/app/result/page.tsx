@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api";
+
 import { motion, AnimatePresence } from "framer-motion";
 import TypingText from "../components/TypingText";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
@@ -89,7 +91,7 @@ function ResultPageContent() {
                 if (selectedCareer) params.append("career", selectedCareer);
                 if (selectedLocation) params.append("location", selectedLocation); // Added Location Param
 
-                const res = await fetch(`http://localhost:8000/api/recommend?${params.toString()}`);
+                const res = await fetch(`${API_BASE}/api/recommend?${params.toString()}`);
                 if (!res.ok) throw new Error("Failed to fetch recommendations");
                 const data = await res.json();
 

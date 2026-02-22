@@ -87,7 +87,7 @@ export default function LawyerCard({ lawyer, query }: { lawyer: LawyerProps, que
     const handleContactClick = async (type: string) => {
         if (!query) return;
         try {
-            await fetch(`http://localhost:8000/api/lawyers/${lawyer.id}/leads`, {
+            await fetch(`${API_BASE}/api/lawyers/${lawyer.id}/leads`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
