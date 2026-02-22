@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import SecurityGuard from "./components/SecurityGuard";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -51,8 +53,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500;600;700;900&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`antialiased bg-background text-foreground font-sans selection:bg-point/30 selection:text-foreground`}
-      >{children}<SecurityGuard /></body>
+        className={`antialiased bg-background text-foreground font-sans selection:bg-point/30 selection:text-foreground flex flex-col min-h-screen`}
+      >
+        <Navbar />
+        <div className="flex-1">{children}</div>
+        <Footer />
+        <SecurityGuard />
+      </body>
     </html>
   );
 }

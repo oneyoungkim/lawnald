@@ -4,11 +4,7 @@ import TypingText from "./components/TypingText";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-24 bg-white text-[var(--foreground)] relative selection:bg-accent selection:text-white">
-      <header className="absolute top-0 right-0 p-6 flex gap-4 text-sm font-medium z-50">
-        <a href="/login" className="px-4 py-2 hover:bg-point/10 rounded-full transition-colors text-main font-semibold">로그인</a>
-        <a href="/signup" className="px-4 py-2 bg-main text-white rounded-full hover:bg-main/90 transition-opacity shadow-lg shadow-main/20">회원가입</a>
-      </header>
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-24 pt-20 bg-white text-[var(--foreground)] relative selection:bg-accent selection:text-white">
 
       <div className="z-10 max-w-5xl w-full items-center justify-center text-sm flex flex-col gap-24">
 
@@ -38,10 +34,6 @@ export default function Home() {
 
         <SearchForm />
       </div>
-
-      <footer className="absolute bottom-8 text-xs text-slate-400 font-light tracking-wider uppercase">
-        AI Legal Match
-      </footer>
     </main>
   );
 }
