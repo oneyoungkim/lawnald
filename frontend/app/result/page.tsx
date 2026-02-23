@@ -256,21 +256,6 @@ function ResultPageContent() {
                             >{o.l}</button>
                         ))}
                     </div>
-                    {/* Education & Career (combined row) */}
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider w-12 shrink-0">기타</span>
-                        {[{ v: "", l: "모두 보기", setter: () => { setSelectedEducation(""); setSelectedCareer(""); } }].map(o => (
-                            <button key="all" type="button" onClick={o.setter}
-                                className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${!selectedEducation && !selectedCareer ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
-                            >{o.l}</button>
-                        ))}
-                        <button type="button" onClick={() => setSelectedEducation(selectedEducation === "법학전문대학원" ? "" : "법학전문대학원")}
-                            className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${selectedEducation === "법학전문대학원" ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
-                        >🎓 로스쿨 출신</button>
-                        <button type="button" onClick={() => setSelectedCareer(selectedCareer === "대형 로펌 출신" ? "" : "대형 로펌 출신")}
-                            className={`px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200 ${selectedCareer === "대형 로펌 출신" ? 'bg-[#1E293B] text-white border-[#1E293B] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
-                        >🏢 대형 로펌 경력</button>
-                    </div>
                 </div>
 
 
