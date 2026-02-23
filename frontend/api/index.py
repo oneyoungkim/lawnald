@@ -487,6 +487,24 @@ async def signup_lawyer(
     founder_msg = " 🎉 가입 신청이 완료되었습니다! 관리자 검토 후 승인됩니다." if new_lawyer.get("is_founder") else " 가입 신청이 완료되었습니다. 관리자 검토 후 승인됩니다."
     return {"message": founder_msg, "lawyer_id": new_lawyer["id"], "is_founder": new_lawyer.get("is_founder", False), "status": "pending_review"}
 
+# --- Serve uploaded files (Vercel serverless can't use StaticFiles) ---
+from fastapi.responses import FileResponse
+
+@app.get("/uploads/{subdir}/{filename}")
+def serve_uploaded_file(subdir: str, filename: str):
+    """Serve uploaded files (e.g. license images) from /tmp/uploads/"""
+    import re
+    # Sanitize inputs to prevent path traversal
+    if not re.match(r'^[a-zA-Z0-9_-]+$', subdir):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    if '..' in filename or '/' in filename or '\\' in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    file_path = os.path.join("/tmp/uploads", subdir, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
 # --- Admin: Lawyer Approval Endpoints ---
 
 @app.get("/api/admin/lawyers/pending")

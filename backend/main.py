@@ -33,6 +33,11 @@ from uuid import uuid4
 
 app = FastAPI()
 
+# Mount uploads directory for serving license images etc.
+_uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+os.makedirs(_uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
+
 # Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
@@ -1352,6 +1357,8 @@ class LawyerModel(BaseModel):
     trial_ends_at: Optional[str] = None
     billing_key: Optional[str] = None
     subscription_plan: Optional[str] = None
+    licenseImageUrl: Optional[str] = None
+    licenseId: Optional[str] = None
 
 class CaseAnalysisDetails(BaseModel):
     case_nature: str
