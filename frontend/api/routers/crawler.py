@@ -220,19 +220,35 @@ def generate_cover_image(content_summary: str):
         )
         dalle_url = image_response.data[0].url
         
-        # ── 4. Download and save locally ──
+        # ── 4. Download and save to Supabase Storage (persistent) ──
         img_data = requests.get(dalle_url, timeout=30).content
         
+        filename = f"blog_{uuid.uuid4().hex[:12]}.png"
+        
+        # Supabase Storage에 업로드 시도
+        try:
+            import sys
+            parent_dir = str(Path(__file__).resolve().parent.parent)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+            from storage_utils import upload_and_get_url  # type: ignore
+            public_url = upload_and_get_url("photos", f"blog/{filename}", img_data, "image/png")
+            if public_url:
+                print(f"[ImageGen] ✅ Supabase Storage: {filename} ({len(img_data) // 1024}KB) | Theme: {theme}")
+                return public_url
+        except Exception as se:
+            print(f"[ImageGen] ⚠️ Supabase 업로드 실패: {se}")
+        
+        # 로컬 폴백
         blog_img_dir = Path(__file__).resolve().parent.parent / "static" / "images" / "blog"
         blog_img_dir.mkdir(parents=True, exist_ok=True)
         
-        filename = f"blog_{uuid.uuid4().hex[:12]}.png"
         file_path = blog_img_dir / filename
         with open(file_path, "wb") as f:
             f.write(img_data)
         
-        print(f"[ImageGen] ✅ Saved: {file_path} ({len(img_data) // 1024}KB) | Theme: {theme}")
-        return f"/static/images/blog/{filename}"
+        print(f"[ImageGen] ✅ Local saved: {file_path} ({len(img_data) // 1024}KB) | Theme: {theme}")
+        return f"http://localhost:8000/static/images/blog/{filename}"
         
     except Exception as e:
         print(f"[ImageGen] ❌ Failed: {e}")
