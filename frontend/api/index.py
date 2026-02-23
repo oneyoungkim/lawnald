@@ -304,6 +304,89 @@ def client_register(request: ClientRegisterRequest):
     CLIENTS_DB.append(new_user)
     return {"message": "Registration successful", "user": new_user}
 
+# --- Lawyer Signup ---
+@app.post("/api/auth/signup/lawyer")
+async def signup_lawyer(
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    licenseId: str = Form(...),
+    firm: str = Form(...),
+    phone: str = Form(...),
+    licenseImage: UploadFile = File(...)
+):
+    # Check if email exists
+    if any(l["id"] == email for l in LAWYERS_DB):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Validation: licenseImage must be an image
+    if licenseImage.content_type and not licenseImage.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="License file must be an image")
+
+    # Save License Image (Vercel: must use /tmp)
+    import shutil as _shutil
+    upload_dir = "/tmp/uploads/licenses"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_ext = os.path.splitext(licenseImage.filename or "upload.png")[1] or ".png"
+    filename = f"{email}_license{file_ext}"
+    file_path = os.path.join(upload_dir, filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            _shutil.copyfileobj(licenseImage.file, buffer)
+    except Exception as e:
+        print(f"Error saving license image: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save license image")
+    
+    license_url = f"/uploads/licenses/{filename}"
+
+    new_lawyer = {
+        "id": email,
+        "email": email,
+        "name": name,
+        "password": password,
+        "firm": firm,
+        "location": "서울 (등록 대기)",
+        "career": f"변호사 자격증 번호: {licenseId}",
+        "education": "",
+        "careerTags": ["신규"],
+        "gender": "unknown",
+        "expertise": ["일반"],
+        "matchScore": 0,
+        "bestCase": {"title": "등록 대기 중", "summary": "아직 등록된 사례가 없습니다."},
+        "imageUrl": "/static/images/default_avatar.png",
+        "cutoutImageUrl": "/static/images/default_avatar.png",
+        "bgRemoveStatus": "pending",
+        "content_items": [],
+        "content_highlights": "인증 심사 중",
+        "phone": phone,
+        "homepage": None,
+        "kakao_id": None,
+        "verified": False,
+        "licenseId": licenseId,
+        "licenseImageUrl": license_url
+    }
+
+    # --- 파운딩 멤버 혜택 자동 부여 ---
+    try:
+        from billing import set_founder_benefits, set_standard_trial, FOUNDER_LIMIT
+    except ImportError:
+        FOUNDER_LIMIT = 300
+        set_founder_benefits = None
+        set_standard_trial = None
+
+    if set_founder_benefits and len(LAWYERS_DB) < FOUNDER_LIMIT:
+        set_founder_benefits(new_lawyer)
+    elif set_standard_trial:
+        set_standard_trial(new_lawyer)
+    
+    LAWYERS_DB.append(new_lawyer)
+    save_lawyers_db(LAWYERS_DB)
+
+    founder_msg = " 🚀 파운딩 멤버로 선정되었습니다! 3개월 무료 + 평생 50% 할인" if new_lawyer.get("is_founder") else ""
+    return {"message": f"Signup successful{founder_msg}", "lawyer_id": new_lawyer["id"], "is_founder": new_lawyer.get("is_founder", False)}
+
 
 # ── Social Login (Kakao / Naver) ──────────────────────────────
 class SocialLoginRequest(BaseModel):

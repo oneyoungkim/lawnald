@@ -1709,17 +1709,18 @@ async def signup_lawyer(
         raise HTTPException(status_code=400, detail="Email already registered")
         
     # Validation: licenseImage must be an image
-    if not licenseImage.content_type.startswith("image/"):
+    if licenseImage.content_type and not licenseImage.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="License file must be an image")
 
     # Save License Image
     import shutil
-    upload_dir = "backend/uploads/licenses"
+    # Try both possible paths depending on where server is run from
+    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "licenses")
     os.makedirs(upload_dir, exist_ok=True)
     
-    file_ext = os.path.splitext(licenseImage.filename)[1]
+    file_ext = os.path.splitext(licenseImage.filename or "upload.png")[1] or ".png"
     filename = f"{email}_license{file_ext}"
-    file_path = os.path.join(upload_dir, filename) # Re-added this line
+    file_path = os.path.join(upload_dir, filename)
     
     try:
         with open(file_path, "wb") as buffer:
