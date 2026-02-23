@@ -16,6 +16,7 @@ __pycache__/
 venv/
 .venv/
 *.egg-info/
+backend/venv/
 
 # === 환경 변수 (절대 커밋 금지) ===
 .env
@@ -23,11 +24,30 @@ venv/
 .env.production
 .env.*.local
 
+# === 시크릿/인증서 파일 ===
+*.key
+*.pem
+*.p12
+*.pfx
+*.secret
+*.credentials
+
 # === DB / 데이터 ===
 *.db
 *_db.json
 push_tokens_db.json
 admin_blog_db.json
+lawyers_db.json
+real_lawyers_backup.json
+embeddings_cache.json
+stats_history.json
+crawler_contacts.json
+
+# === 업로드 / 임시 파일 ===
+uploads/
+temp_uploads/
+backend/uploads/
+backend/temp_uploads/
 
 # === IDE ===
 .vscode/
@@ -39,6 +59,19 @@ admin_blog_db.json
 dist/
 build/
 
-# === 기타 ===
+# === 로그 ===
 *.log
 npm-debug.log*
+server_crash_monitor*.log
+chat_server*.log
+verification*.log
+
+# === 디버그/테스트 출력 ===
+debug_output.txt
+*_debug.txt
+*_debug.json
+reproduction_result.txt
+test_result.txt
+test_analysis_result.txt
+verify_output*.txt
+backend/debug_env.txt

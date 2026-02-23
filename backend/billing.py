@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 
 # --- Configuration ---
-TOSS_SECRET_KEY = os.getenv("TOSS_SECRET_KEY", "test_sk_FAKE_KEY_FOR_DEV")
+TOSS_SECRET_KEY = os.getenv("TOSS_SECRET_KEY", "")
 TOSS_API_BASE = "https://api.tosspayments.com"
 FOUNDER_LIMIT = 300
 STANDARD_PRICE = 200000  # 월 정가 20만 원
@@ -162,7 +162,7 @@ async def issue_billing_key(req: BillingKeyRequest):
         raise HTTPException(status_code=404, detail="변호사를 찾을 수 없습니다")
 
     # 토스 API 호출
-    if TOSS_SECRET_KEY.startswith("test_sk_FAKE"):
+    if not TOSS_SECRET_KEY:
         # Mock mode for development
         billing_key = f"mock_billing_{uuid.uuid4().hex[:12]}"
     else:
@@ -191,7 +191,7 @@ async def charge_subscription(req: ChargeRequest):
     amount = calculate_amount(lawyer)
     order_id = f"lawnald_{lawyer['id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    if TOSS_SECRET_KEY.startswith("test_sk_FAKE"):
+    if not TOSS_SECRET_KEY:
         # Mock mode
         result = {
             "orderId": order_id,
@@ -377,7 +377,7 @@ async def run_auto_billing():
         order_id = f"auto_{lawyer['id']}_{now.strftime('%Y%m%d')}"
 
         try:
-            if TOSS_SECRET_KEY.startswith("test_sk_FAKE"):
+            if not TOSS_SECRET_KEY:
                 # Mock mode - just mark as charged
                 pass
             else:

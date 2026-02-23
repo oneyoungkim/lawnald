@@ -34,13 +34,14 @@ ADMIN_BLOG_DB = load_blog_db()
 import hashlib
 
 ADMIN_CREDENTIALS = {
-    "username": "macdee",
-    "password": "02208888md!",
+    "username": os.getenv("ADMIN_USERNAME", ""),
+    "password": os.getenv("ADMIN_PASSWORD", ""),
 }
 
 def _generate_token(username: str) -> str:
-    """간단한 토큰 생성"""
-    raw = f"{username}:lawnald-admin-secret-2026"
+    """간단한 토큰 생성 (salt는 환경변수에서 로드)"""
+    salt = os.getenv("ADMIN_TOKEN_SALT", "default-salt")
+    raw = f"{username}:{salt}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 ADMIN_TOKEN = _generate_token(ADMIN_CREDENTIALS["username"])

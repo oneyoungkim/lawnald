@@ -402,12 +402,17 @@ class ConsultationCreateRequest(BaseModel):
 
 @app.post("/api/auth/login")
 def login(request: LoginRequest):
-    # 1. Check for Admin Login (Hardcoded)
-    if request.email == "macdee" and request.password == "02208888md!":
+    # 1. Check for Admin Login (from environment variables)
+    _admin_user = os.getenv("ADMIN_USERNAME", "")
+    _admin_pass = os.getenv("ADMIN_PASSWORD", "")
+    if _admin_user and request.email == _admin_user and request.password == _admin_pass:
+        import hashlib as _hl
+        _jwt_secret = os.getenv("JWT_SECRET_KEY", "fallback-secret")
+        _admin_token = _hl.sha256(f"{_admin_user}:{_jwt_secret}".encode()).hexdigest()
         return {
             "message": "Admin login successful", 
-            "token": "admin_secret_token_123",
-            "user": {"name": "관리자", "role": "admin", "email": "macdee"},
+            "token": _admin_token,
+            "user": {"name": "관리자", "role": "admin", "email": _admin_user},
             "redirect_to": "/admin/dashboard"
         }
 
