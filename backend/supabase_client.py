@@ -23,7 +23,8 @@ def get_supabase():
     _initialized = True
 
     url = os.getenv("SUPABASE_URL", "")
-    key = os.getenv("SUPABASE_KEY", "")
+    # 서비스 키(secret key)를 우선 사용 — RLS 바이패스 (Storage 업로드에 필요)
+    key = os.getenv("SUPABASE_SECRET_KEY", "") or os.getenv("SUPABASE_KEY", "")
 
     if not url or not key:
         print("⚠️ SUPABASE_URL/SUPABASE_KEY 미설정 → JSON 파일 모드로 동작")

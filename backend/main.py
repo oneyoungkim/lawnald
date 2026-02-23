@@ -1052,16 +1052,27 @@ class CaseSummaryRequest(BaseModel):
 @app.post("/api/cases/upload_pdf")
 async def upload_case_pdf(lawyer_id: str = Form(...), file: UploadFile = File(...)):
     # 1. Save File
-    upload_dir = f"backend/uploads/cases/{lawyer_id}"
-    os.makedirs(upload_dir, exist_ok=True)
-    
+    content = await file.read()
     file_id = str(uuid4())
     ext = os.path.splitext(file.filename)[1]
-    file_path = f"{upload_dir}/{file_id}{ext}"
     
-    with open(file_path, "wb") as buffer:
-        content = await file.read()
-        buffer.write(content)
+    # Supabase Storage에 업로드
+    try:
+        from storage_utils import upload_file as sb_upload  # type: ignore
+        storage_path = f"{lawyer_id}/{file_id}{ext}"
+        sb_upload("cases", storage_path, content, file.content_type or "application/pdf")
+    except Exception as e:
+        print(f"Supabase Storage 실패 (cases): {e}")
+    
+    # 로컬 폴백 저장
+    upload_dir = f"backend/uploads/cases/{lawyer_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = f"{upload_dir}/{file_id}{ext}"
+    try:
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+    except Exception:
+        pass
         
     # 2. Extract Text
     text, is_scanned = extract_text_from_pdf(content)
@@ -1511,22 +1522,33 @@ async def upload_lawyer_photo(lawyer_id: str, file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
 
-    # 3. Save original
+    # 3. Save to Supabase Storage + local fallback
+    file_bytes = await file.read()
     filename = f"{lawyer_id}_{file.filename}"
-    original_path = await image_utils.save_upload_file(file, filename)
     
-    # Update DB status - SKIP Background Removal as per user request
-    # Just use the original image for both fields
-    full_url = f"http://localhost:8000/static/images/original/{filename}"
+    full_url = ""
+    try:
+        from storage_utils import upload_and_get_url  # type: ignore
+        full_url = upload_and_get_url("photos", filename, file_bytes, file.content_type or "image/png")
+    except Exception as e:
+        print(f"Supabase Storage 실패 (photos): {e}")
+    
+    # 로컬 폴백
+    if not full_url:
+        # Reset file position for local save
+        from io import BytesIO
+        file._file = BytesIO(file_bytes)
+        await image_utils.save_upload_file(file, filename)
+        full_url = f"http://localhost:8000/static/images/original/{filename}"
     
     lawyer["imageUrl"] = full_url
-    lawyer["cutoutImageUrl"] = full_url # Use original as cutout
+    lawyer["cutoutImageUrl"] = full_url
     lawyer["bgRemoveStatus"] = "skipped"
     
     save_db()
     
     return {
-        "message": "Photo uploaded successfully (Background removal skipped)", 
+        "message": "Photo uploaded successfully", 
         "cutoutImageUrl": full_url,
         "status": "processed"
     }
@@ -1547,7 +1569,34 @@ class ContentSubmission(BaseModel):
     career: Optional[str] = None
     education: Optional[str] = None
 
-SUBMISSIONS_DB = []
+# --- Supabase에서 submissions 로드 ---
+def _load_submissions_from_supabase():
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        sb = get_supabase()
+        if sb is None:
+            return []
+        result = sb.table("submissions").select("*").execute()
+        return [row.get("data", row) for row in (result.data or [])]
+    except Exception as e:
+        print(f"submissions 로드 실패: {e}")
+        return []
+
+def _save_submission_to_supabase(submission):
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        sb = get_supabase()
+        if sb is None:
+            return
+        sb.table("submissions").upsert({
+            "id": submission["id"],
+            "data": submission,
+            "status": submission.get("status", "pending"),
+        }, on_conflict="id").execute()
+    except Exception as e:
+        print(f"submission 저장 실패: {e}")
+
+SUBMISSIONS_DB = _load_submissions_from_supabase()
 
 @app.post("/api/lawyers/{lawyer_id}/submit")
 async def submit_content(
@@ -1573,17 +1622,25 @@ async def submit_content(
     if file:
         try:
             filename = f"{uuid.uuid4()}_{file.filename}"
-            # Ensure safe filename
             import re
             filename = re.sub(r'[^a-zA-Z0-9_.-]', '', filename)
             
-            # Save file
-            import shutil
-            file_path = f"static/documents/{filename}"
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            file_bytes = await file.read()
             
-            file_url = f"http://localhost:8000/static/documents/{filename}"
+            # Supabase Storage에 업로드
+            try:
+                from storage_utils import upload_and_get_url  # type: ignore
+                file_url = upload_and_get_url("cases", f"submissions/{filename}", file_bytes, file.content_type or "application/octet-stream")
+            except Exception:
+                pass
+            
+            # 로컬 폴백
+            if not file_url:
+                file_path = f"static/documents/{filename}"
+                os.makedirs("static/documents", exist_ok=True)
+                with open(file_path, "wb") as buffer:
+                    buffer.write(file_bytes)
+                file_url = f"http://localhost:8000/static/documents/{filename}"
         except Exception as e:
             print(f"File upload failed: {e}")
             raise HTTPException(status_code=500, detail="File upload failed")
@@ -1599,7 +1656,7 @@ async def submit_content(
         "summary": summary or "",
         "content": content or "",
         "topic_tags": tags_list,
-        "status": "approved", # Auto-approve for demo
+        "status": "approved",
         "date": datetime.now().strftime("%Y-%m-%d"),
         "file_url": file_url,
         "career": career,
@@ -1607,6 +1664,7 @@ async def submit_content(
     }
     
     SUBMISSIONS_DB.append(submission)
+    _save_submission_to_supabase(submission)
 
     # Auto-add to lawyer's content_items for Magazine visibility
     if type in ["column", "blog", "case"]:
@@ -1826,25 +1884,31 @@ async def signup_lawyer(
     if licenseImage.content_type and not licenseImage.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="License file must be an image")
 
-    # Save License Image
-    import shutil
-    # Try both possible paths depending on where server is run from
-    upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "licenses")
-    os.makedirs(upload_dir, exist_ok=True)
-    
+    # Save License Image to Supabase Storage + local fallback
+    file_bytes = await licenseImage.read()
     file_ext = os.path.splitext(licenseImage.filename or "upload.png")[1] or ".png"
     filename = f"{email}_license{file_ext}"
-    file_path = os.path.join(upload_dir, filename)
     
+    license_url = ""
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(licenseImage.file, buffer)
+        from storage_utils import upload_and_get_url  # type: ignore
+        license_url = upload_and_get_url("licenses", filename, file_bytes, licenseImage.content_type or "image/png")
     except Exception as e:
-        print(f"Error saving license image: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save license image")
-        
-    # URL accessible via mounted /uploads path
-    license_url = f"/uploads/licenses/{filename}"
+        print(f"Supabase Storage 실패 (licenses): {e}")
+    
+    # 로컬 폴백
+    if not license_url:
+        import shutil
+        upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "licenses")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, filename)
+        try:
+            with open(file_path, "wb") as buffer:
+                buffer.write(file_bytes)
+            license_url = f"/uploads/licenses/{filename}"
+        except Exception as e:
+            print(f"Error saving license image: {e}")
+            raise HTTPException(status_code=500, detail="Failed to save license image")
 
     import uuid
     new_lawyer = {
