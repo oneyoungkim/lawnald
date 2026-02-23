@@ -1093,7 +1093,17 @@ async def upload_case_pdf(lawyer_id: str = Form(...), file: UploadFile = File(..
     
     # We pass the ORIGINAL text to the LLM so it can identify names (e.g. "Kim Soo-yeon") 
     # and anonymize them stylistically (e.g. "Kim C") as per the prompt instructions.
-    analysis = analyze_judgment(text)
+    try:
+        analysis = analyze_judgment(text)
+    except Exception as e:
+        print(f"⚠️ AI 판결문 분석 실패: {e}")
+        analysis = {
+            "overview": "AI 분석 중 오류가 발생했습니다. 직접 내용을 입력해 주세요.",
+            "issues": "분석 실패",
+            "strategy": "분석 실패",
+            "result": "분석 실패",
+            "points": "분석 실패",
+        }
     
     # Auto-generate Image
     import urllib.parse
