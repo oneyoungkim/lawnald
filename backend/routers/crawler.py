@@ -151,28 +151,42 @@ def rewrite_with_llm(text: str):
         "}"
     )
     
-    try:
-        response = client.chat.completions.create(
-            model="o1",
-            messages=[
-                {"role": "developer", "content": system_prompt},
-                {"role": "user", "content": f"다음 글을 분석하고 SEO 최적화하여 변환해줘:\n\n{text[:15000]}"}
-            ],
-            response_format={ "type": "json_object" }
-        )
-        import json
-        return json.loads(response.choices[0].message.content)
-    except Exception as e:
-        print(f"LLM Error: {e}")
-        # Fallback
-        return {
-            "title": "제목 생성 실패",
-            "content": text,
-            "category": "기타",
-            "keyword": "일반",
-            "meta_description": "",
-            "slug": ""
-        }
+    import json
+    max_retries = 2
+    last_error = None
+    
+    for attempt in range(max_retries + 1):
+        try:
+            print(f"[BlogImport] LLM attempt {attempt + 1}/{max_retries + 1}...")
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"다음 글을 분석하고 SEO 최적화하여 변환해줘:\n\n{text[:15000]}"}
+                ],
+                response_format={ "type": "json_object" },
+                timeout=120
+            )
+            result = json.loads(response.choices[0].message.content)
+            print(f"[BlogImport] ✅ LLM success on attempt {attempt + 1}")
+            return result
+        except Exception as e:
+            last_error = e
+            print(f"[BlogImport] ⚠️ LLM attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries:
+                import time
+                time.sleep(2)  # Brief pause before retry
+    
+    print(f"[BlogImport] ❌ All LLM attempts failed: {last_error}")
+    # Fallback
+    return {
+        "title": "제목 생성 실패",
+        "content": text,
+        "category": "기타",
+        "keyword": "일반",
+        "meta_description": "",
+        "slug": ""
+    }
 
 def generate_cover_image(content_summary: str):
     """
