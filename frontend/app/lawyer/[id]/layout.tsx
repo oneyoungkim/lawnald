@@ -95,20 +95,13 @@ export default async function LawyerLayout({
                             {lawyer.name?.endsWith('변호사') ? lawyer.name : `${lawyer.name}`} <span className="text-zinc-400 font-sans text-4xl align-middle">{lawyer.name?.endsWith('변호사') ? '' : '변호사'}</span>
                         </h1>
 
-                        <div className="text-xl md:text-2xl text-zinc-600 font-light leading-relaxed mb-10 break-keep">
-                            {lawyer.introduction_short ? (
-                                lawyer.introduction_short.split('\n').map((line, i) => (
+                        {lawyer.introduction_short && (
+                            <div className="text-xl md:text-2xl text-zinc-600 font-light leading-relaxed mb-10 break-keep">
+                                {lawyer.introduction_short.split('\n').map((line, i) => (
                                     <span key={i}>{line}<br /></span>
-                                ))
-                            ) : (
-                                <>
-                                    {lawyer.firm} 소속<br className="hidden md:block" />
-                                    {lawyer.expertise?.filter(e => e !== '일반').length > 0
-                                        ? `${lawyer.expertise.filter(e => e !== '일반').join(', ')} 전문`
-                                        : '법률 문제, 전문가와 상담하세요.'}
-                                </>
-                            )}
-                        </div>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="flex flex-wrap gap-4">
                             {lawyer.phone && (

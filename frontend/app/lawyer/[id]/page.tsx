@@ -74,19 +74,14 @@ export default async function LawyerPage({ params }: { params: Promise<{ id: str
                     </li>
                 </ul>
             </div>
-            <div className="bg-white border border-point/10 p-10 rounded-3xl shadow-sm">
-                <h3 className="text-xl font-bold text-main mb-6">변호사 소개</h3>
-                <div className="text-zinc-600 leading-loose text-lg whitespace-pre-wrap">
-                    {lawyer.introduction_long || (
-                        <>
-                            안녕하세요, {lawyer.firm}의 {lawyer.name} 변호사입니다. <br /><br />
-                            의뢰인의 가장 힘든 순간에 힘이 되어드리는 든든한 조력자가 되겠습니다.
-                            복잡하고 어려운 법률 문제, 혼자 고민하지 마시고 전문가와 상의하세요.
-                            최신의 법률 지식과 풍부한 실무 경험을 바탕으로 최선의 결과를 이끌어내겠습니다.
-                        </>
-                    )}
+            {lawyer.introduction_long && (
+                <div className="bg-white border border-point/10 p-10 rounded-3xl shadow-sm">
+                    <h3 className="text-xl font-bold text-main mb-6">변호사 소개</h3>
+                    <div className="text-zinc-600 leading-loose text-lg whitespace-pre-wrap">
+                        {lawyer.introduction_long}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Recent Cases Section */}
             {lawyer.cases && lawyer.cases.length > 0 && (
