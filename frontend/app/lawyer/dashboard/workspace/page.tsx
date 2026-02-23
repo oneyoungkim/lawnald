@@ -4,6 +4,7 @@ import { API_BASE } from "@/lib/api";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 import {
     ArrowLeftIcon,
     DocumentArrowUpIcon,
@@ -26,6 +27,17 @@ interface ChatMessage {
     timestamp: string;
 }
 
+interface SavedSession {
+    id: string;
+    title: string;
+    sessionId: string;
+    messages: ChatMessage[];
+    documents: DocInfo[];
+    summary: string;
+    totalChars: number;
+    savedAt: string;
+}
+
 export default function CaseWorkspacePage() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +57,85 @@ export default function CaseWorkspacePage() {
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState('');
+    const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
+    const [currentSessionLocalId, setCurrentSessionLocalId] = useState('');
+
+    // ── 세션 목록 로드 ──
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('workspace_sessions');
+            if (raw) setSavedSessions(JSON.parse(raw));
+        } catch { }
+    }, []);
+
+    // ── 현재 세션 자동 저장 ──
+    useEffect(() => {
+        if (messages.length === 0) return;
+        try {
+            const raw = localStorage.getItem('workspace_sessions');
+            let sessions: SavedSession[] = raw ? JSON.parse(raw) : [];
+            const localId = currentSessionLocalId || `ws_${Date.now()}`;
+            if (!currentSessionLocalId) setCurrentSessionLocalId(localId);
+
+            const firstUserMsg = messages.find(m => m.role === 'user');
+            const title = firstUserMsg?.content?.slice(0, 40) || (documents[0]?.name || '새 대화');
+
+            const updated: SavedSession = {
+                id: localId,
+                title,
+                sessionId,
+                messages,
+                documents,
+                summary,
+                totalChars,
+                savedAt: new Date().toISOString(),
+            };
+
+            const idx = sessions.findIndex(s => s.id === localId);
+            if (idx >= 0) {
+                sessions[idx] = updated;
+            } else {
+                sessions.unshift(updated);
+            }
+            // 최대 20개 유지
+            sessions = sessions.slice(0, 20);
+            localStorage.setItem('workspace_sessions', JSON.stringify(sessions));
+            setSavedSessions(sessions);
+        } catch { }
+    }, [messages, sessionId, documents, summary, totalChars, currentSessionLocalId]);
+
+    // 세션 복원
+    const loadSession = (session: SavedSession) => {
+        setCurrentSessionLocalId(session.id);
+        setSessionId(session.sessionId);
+        setMessages(session.messages);
+        setDocuments(session.documents);
+        setSummary(session.summary);
+        setTotalChars(session.totalChars);
+        setError('');
+    };
+
+    // 세션 삭제
+    const deleteSession = (id: string) => {
+        try {
+            const raw = localStorage.getItem('workspace_sessions');
+            let sessions: SavedSession[] = raw ? JSON.parse(raw) : [];
+            sessions = sessions.filter(s => s.id !== id);
+            localStorage.setItem('workspace_sessions', JSON.stringify(sessions));
+            setSavedSessions(sessions);
+        } catch { }
+    };
+
+    // 새 세션 시작
+    const handleNewSession = () => {
+        setCurrentSessionLocalId('');
+        setSessionId('');
+        setMessages([]);
+        setDocuments([]);
+        setSummary('');
+        setTotalChars(0);
+        setError('');
+    };
 
     // Auto-scroll chat
     useEffect(() => {
@@ -194,15 +285,10 @@ export default function CaseWorkspacePage() {
                                 세션: {sessionId}
                             </span>
                             <button
-                                onClick={() => {
-                                    setSessionId('');
-                                    setDocuments([]);
-                                    setSummary('');
-                                    setMessages([]);
-                                }}
+                                onClick={handleNewSession}
                                 className="text-xs text-red-500 hover:text-red-600 font-medium"
                             >
-                                초기화
+                                새 대화
                             </button>
                         </div>
                     )}
@@ -313,6 +399,51 @@ export default function CaseWorkspacePage() {
                             </div>
                         </div>
                     )}
+
+                    {/* 이전 대화 목록 */}
+                    <div className="px-5 pb-5 flex-1">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">이전 대화</h3>
+                            {(sessionId || messages.length > 0) && (
+                                <button
+                                    onClick={handleNewSession}
+                                    className="text-[11px] text-violet-500 hover:text-violet-600 font-semibold"
+                                >
+                                    + 새 대화
+                                </button>
+                            )}
+                        </div>
+                        {savedSessions.length > 0 ? (
+                            <div className="space-y-1.5">
+                                {savedSessions.map(s => (
+                                    <div
+                                        key={s.id}
+                                        className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all ${currentSessionLocalId === s.id
+                                                ? 'bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-700'
+                                                : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50'
+                                            }`}
+                                        onClick={() => loadSession(s)}
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{s.title}</p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5">
+                                                {new Date(s.savedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                {` · ${s.messages.length}개`}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                                        >
+                                            <XMarkIcon className="w-3 h-3 text-red-400" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-[11px] text-gray-300 dark:text-zinc-600">아직 대화 기록이 없습니다</p>
+                        )}
+                    </div>
                 </div>
 
                 {/* ── 우측 패널: AI 채팅 ── */}
@@ -320,9 +451,9 @@ export default function CaseWorkspacePage() {
 
                     {/* Chat Messages */}
                     <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-                        {!sessionId ? (
+                        {!sessionId && messages.length === 0 ? (
                             /* Empty State */
-                            <div className="h-full flex items-center justify-center">
+                            <div className="h-full flex flex-col items-center justify-center px-4">
                                 <div className="text-center max-w-md">
                                     <div className="w-20 h-20 bg-violet-50 dark:bg-violet-900/20 rounded-full flex items-center justify-center mx-auto mb-5">
                                         <span className="text-4xl">🧠</span>
@@ -339,19 +470,7 @@ export default function CaseWorkspacePage() {
                             </div>
                         ) : messages.length === 0 ? (
                             <div className="h-full flex items-center justify-center">
-                                <div className="text-center max-w-md">
-                                    <div className="w-20 h-20 bg-violet-50 dark:bg-violet-900/20 rounded-full flex items-center justify-center mx-auto mb-5">
-                                        <span className="text-4xl">🧠</span>
-                                    </div>
-                                    <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
-                                        로날드
-                                    </h2>
-                                    <p className="text-sm text-gray-400 leading-relaxed">
-                                        10년차 수석 어소시에이트, 로날드입니다.<br />
-                                        사건 자료를 공유하시거나 바로 대화를 시작하십시오.<br />
-                                        <span className="text-violet-500 font-medium">감정은 없고 논리만 있습니다.</span>
-                                    </p>
-                                </div>
+                                <p className="text-sm text-gray-400">대화를 시작해주세요.</p>
                             </div>
                         ) : (
                             messages.map((msg, i) => (
@@ -366,10 +485,15 @@ export default function CaseWorkspacePage() {
                                                 <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">로날드</span>
                                             </div>
                                         )}
-                                        <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-white' : 'text-gray-800 dark:text-gray-200'
-                                            }`}>
-                                            {msg.content}
-                                        </p>
+                                        {msg.role === 'assistant' ? (
+                                            <div className="text-sm leading-relaxed text-gray-800 dark:text-gray-200 prose prose-sm prose-gray dark:prose-invert max-w-none [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>p:last-child]:mb-0">
+                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap text-white">
+                                                {msg.content}
+                                            </p>
+                                        )}
                                         <p className={`text-[10px] mt-2 ${msg.role === 'user' ? 'text-violet-200' : 'text-gray-300 dark:text-zinc-600'
                                             }`}>
                                             {new Date(msg.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}

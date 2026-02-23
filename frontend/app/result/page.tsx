@@ -117,15 +117,7 @@ function ResultPageContent() {
         fetchLawyers();
     }, [query, selectedGender, selectedEducation, selectedCareer, selectedLocation]);
 
-    // Auto-scroll to lawyer list after briefing is shown
-    useEffect(() => {
-        if (!loading && lawyers.length > 0 && lawyerListRef.current) {
-            const timer = setTimeout(() => {
-                lawyerListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 1500);
-            return () => clearTimeout(timer);
-        }
-    }, [loading, lawyers]);
+
 
     return (
         <div className="min-h-screen bg-white text-black pt-24 pb-20" style={{ colorScheme: 'light' }}>
