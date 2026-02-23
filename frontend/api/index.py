@@ -1,3 +1,4 @@
+# pyre-ignore-all-errors
 import os
 import sys
 
@@ -38,6 +39,105 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Visitor Tracking (In-Memory) ---
+from datetime import datetime, timedelta
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+import time
+
+_visitor_data = {
+    "unique_ips": set(),
+    "page_views": 0,
+    "request_times": [],   # list of (timestamp, duration_ms)
+    "last_reset": datetime.now().strftime("%Y-%m-%d"),
+}
+
+def _reset_if_new_day():
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _visitor_data["last_reset"] != today:
+        _visitor_data["unique_ips"] = set()
+        _visitor_data["page_views"] = 0
+        _visitor_data["request_times"] = []
+        _visitor_data["last_reset"] = today
+
+class VisitorTrackingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        _reset_if_new_day()
+        start = time.time()
+        
+        # Track visitor
+        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+        if client_ip and "," in client_ip:
+            client_ip = client_ip.split(",")[0].strip()
+        
+        path = request.url.path
+        # Only track non-API page visits and API data calls, skip health checks etc.
+        if not path.startswith("/_next") and path != "/favicon.ico":
+            _visitor_data["unique_ips"].add(client_ip)
+            _visitor_data["page_views"] += 1
+        
+        response = await call_next(request)
+        
+        duration = (time.time() - start) * 1000  # ms
+        if not path.startswith("/_next") and path != "/favicon.ico":
+            _visitor_data["request_times"].append(duration)
+            # Keep only last 1000 entries to prevent memory leak
+            if len(_visitor_data["request_times"]) > 1000:
+                _visitor_data["request_times"] = _visitor_data["request_times"][-500:]
+        
+        return response
+
+app.add_middleware(VisitorTrackingMiddleware)
+
+# --- Admin Stats Endpoints ---
+
+@app.get("/api/admin/stats")
+def get_admin_stats():
+    """관리자 대시보드 통계"""
+    _reset_if_new_day()
+    
+    visitors = len(_visitor_data["unique_ips"])
+    page_views = _visitor_data["page_views"]
+    
+    # Average duration
+    times = _visitor_data["request_times"]
+    if times and len(times) > 0:
+        avg_ms = sum(times) / len(times)
+        if avg_ms > 60000:
+            avg_duration = f"{avg_ms / 60000:.1f}분"
+        elif avg_ms > 1000:
+            avg_duration = f"{avg_ms / 1000:.1f}초"
+        else:
+            avg_duration = f"{avg_ms:.0f}ms"
+    else:
+        avg_duration = "—"
+    
+    # Count today's consultations (from chat manager if available)
+    today_consultations = 0
+    try:
+        today_consultations = len(chat_manager.active_rooms) if hasattr(chat_manager, 'active_rooms') else 0
+    except Exception:
+        pass
+    
+    return {
+        "visitors": visitors,
+        "page_views": page_views,
+        "avg_duration": avg_duration,
+        "today_consultations": today_consultations,
+    }
+
+@app.get("/api/admin/crawler/today-count")
+def get_crawler_today_count():
+    """오늘 수집된 잠재 파트너 수"""
+    try:
+        from lawyer_crawler import POTENTIAL_PARTNERS
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_count = len([p for p in POTENTIAL_PARTNERS if p.get("collected_at", "").startswith(today)])
+        return {"today_count": today_count, "total": len(POTENTIAL_PARTNERS)}
+    except (ImportError, Exception):
+        return {"today_count": 0, "total": 0}
+
 
 # --- WebSocket Setup (Declared early) ---
 from chat import chat_manager
@@ -384,9 +484,50 @@ async def signup_lawyer(
     LAWYERS_DB.append(new_lawyer)
     save_lawyers_db(LAWYERS_DB)
 
-    founder_msg = " 🚀 파운딩 멤버로 선정되었습니다! 3개월 무료 + 평생 50% 할인" if new_lawyer.get("is_founder") else ""
-    return {"message": f"Signup successful{founder_msg}", "lawyer_id": new_lawyer["id"], "is_founder": new_lawyer.get("is_founder", False)}
+    founder_msg = " 🎉 가입 신청이 완료되었습니다! 관리자 검토 후 승인됩니다." if new_lawyer.get("is_founder") else " 가입 신청이 완료되었습니다. 관리자 검토 후 승인됩니다."
+    return {"message": founder_msg, "lawyer_id": new_lawyer["id"], "is_founder": new_lawyer.get("is_founder", False), "status": "pending_review"}
 
+# --- Admin: Lawyer Approval Endpoints ---
+
+@app.get("/api/admin/lawyers/pending")
+def get_pending_lawyers():
+    """승인 대기 중인 변호사 목록"""
+    pending = [l for l in LAWYERS_DB if not l.get("verified", False)]
+    return pending
+
+@app.post("/api/admin/lawyers/{lawyer_id}/verify")
+def verify_lawyer(lawyer_id: str):
+    """변호사 가입 승인 (자격증 검토 완료)"""
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer not found")
+    
+    lawyer["verified"] = True
+    
+    # 파운딩 멤버 혜택 부여 (승인 시점에 적용)
+    try:
+        from billing import set_founder_benefits, set_standard_trial, FOUNDER_LIMIT
+        verified_count = len([l for l in LAWYERS_DB if l.get("verified", False)])
+        if verified_count <= FOUNDER_LIMIT and not lawyer.get("is_founder"):
+            set_founder_benefits(lawyer)
+    except ImportError:
+        pass
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{lawyer['name']} 변호사가 승인되었습니다.", "lawyer_id": lawyer_id}
+
+@app.post("/api/admin/lawyers/{lawyer_id}/reject")
+def reject_lawyer(lawyer_id: str):
+    """변호사 가입 반려"""
+    global LAWYERS_DB
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer not found")
+
+    lawyer_name = lawyer["name"]
+    LAWYERS_DB = [l for l in LAWYERS_DB if l["id"] != lawyer_id]
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{lawyer_name} 변호사의 가입이 반려되었습니다.", "lawyer_id": lawyer_id}
 
 # ── Social Login (Kakao / Naver) ──────────────────────────────
 class SocialLoginRequest(BaseModel):

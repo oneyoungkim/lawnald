@@ -46,12 +46,7 @@ export default function FounderSignupPage() {
 
             if (res.ok) {
                 setSuccess(true);
-                if (result.is_founder) {
-                    setTimeout(() => router.push("/"), 3000);
-                } else {
-                    alert("파운딩 멤버 300명이 마감되었습니다. 일반 변호사로 가입되었습니다.");
-                    router.push("/");
-                }
+                setTimeout(() => router.push("/"), 5000);
             } else {
                 alert(`가입 실패: ${result.detail || "오류가 발생했습니다."}`);
             }
@@ -80,28 +75,32 @@ export default function FounderSignupPage() {
                         transition={{ type: "spring", delay: 0.2 }}
                         className="text-7xl"
                     >
-                        🎉
+                        📋
                     </motion.div>
                     <div>
                         <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                            파운딩 멤버 가입 완료!
+                            가입 신청 완료!
                         </h1>
                         <p className="text-white/50 text-lg">
-                            🔥 HYPE 배지가 부여되었습니다
+                            자격증 검토 후 승인 알림을 드리겠습니다
                         </p>
                     </div>
                     <div className="flex justify-center gap-4 flex-wrap">
-                        <div className="px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-xl text-violet-300 text-sm font-medium">
-                            ✓ 3개월 무료
-                        </div>
-                        <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-300 text-sm font-medium">
-                            ✓ 평생 50% 할인
-                        </div>
                         <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-sm font-medium">
-                            ✓ HYPE 배지
+                            ⏳ 관리자 검토 중
                         </div>
                     </div>
-                    <p className="text-white/30 text-sm">3초 후 메인 페이지로 이동합니다...</p>
+                    <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-2xl max-w-md">
+                        <p className="text-white/40 text-sm leading-relaxed">
+                            파운딩 멤버 승인 시 다음 혜택이 적용됩니다:
+                        </p>
+                        <div className="flex justify-center gap-3 mt-3 flex-wrap">
+                            <span className="px-3 py-1 bg-violet-500/10 border border-violet-500/20 rounded-lg text-violet-300 text-xs">3개월 무료</span>
+                            <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-300 text-xs">평생 50% 할인</span>
+                            <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-300 text-xs">HYPE 배지</span>
+                        </div>
+                    </div>
+                    <p className="text-white/30 text-sm">5초 후 메인 페이지로 이동합니다...</p>
                 </motion.div>
             </main>
         );

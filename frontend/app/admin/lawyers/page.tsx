@@ -18,12 +18,15 @@ interface Lawyer {
     education?: string;
     expertise: string[];
     content_highlights: string;
+    created_at?: string;
+    verified?: boolean;
 }
 
 export default function AdminLawyersPage() {
     const [lawyers, setLawyers] = useState<Lawyer[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [sortMode, setSortMode] = useState<"recent" | "name">("recent");
 
     // Edit Modal State
     const [editingLawyer, setEditingLawyer] = useState<any>(null);
@@ -127,18 +130,48 @@ export default function AdminLawyersPage() {
             </header>
 
             <div className="max-w-6xl mx-auto">
-                <div className="mb-6">
+                <div className="mb-6 flex gap-3 items-center">
                     <input
                         type="text"
                         placeholder="이름 또는 ID 검색..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-800"
+                        className="flex-1 p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-800"
                     />
+                    <div className="flex bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-800 overflow-hidden">
+                        <button
+                            onClick={() => setSortMode("recent")}
+                            className={`px-4 py-3 text-sm font-bold transition-colors whitespace-nowrap ${sortMode === "recent"
+                                    ? "bg-blue-600 text-white"
+                                    : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-zinc-800"
+                                }`}
+                        >
+                            최근 가입순
+                        </button>
+                        <button
+                            onClick={() => setSortMode("name")}
+                            className={`px-4 py-3 text-sm font-bold transition-colors whitespace-nowrap ${sortMode === "name"
+                                    ? "bg-blue-600 text-white"
+                                    : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-zinc-800"
+                                }`}
+                        >
+                            가나다 순
+                        </button>
+                    </div>
                 </div>
 
+                <p className="text-sm text-neutral-500 mb-4">총 {filteredLawyers.length}명의 변호사</p>
+
                 <div className="grid gap-4">
-                    {filteredLawyers.map(lawyer => (
+                    {[...filteredLawyers].sort((a, b) => {
+                        if (sortMode === "name") {
+                            return a.name.localeCompare(b.name, "ko");
+                        }
+                        // recent: sort by created_at descending (newest first)
+                        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                        return dateB - dateA;
+                    }).map(lawyer => (
                         <div key={lawyer.id} className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-800 flex justify-between items-center">
                             <div>
                                 <h3 className="text-lg font-bold">{lawyer.name} <span className="text-xs text-neutral-400 font-normal">({lawyer.id})</span></h3>

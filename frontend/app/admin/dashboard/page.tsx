@@ -82,6 +82,21 @@ export default function AdminDashboard() {
         }
     }
 
+    const handleRejectLawyer = async (id: string) => {
+        if (!confirm("이 변호사의 가입을 반려하시겠습니까?")) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${id}/reject`, {
+                method: "POST"
+            });
+            if (res.ok) {
+                setPendingLawyers(prev => prev.filter(l => l.id !== id));
+                alert("반려되었습니다.");
+            }
+        } catch (error) {
+            console.error("Failed to reject", error);
+        }
+    }
+
     return (
         <div className="flex min-h-screen bg-background font-sans">
             <AdminMenu />
@@ -149,6 +164,12 @@ export default function AdminDashboard() {
                                                     자격증 확인
                                                 </a>
                                             )}
+                                            <button
+                                                onClick={() => handleRejectLawyer(lawyer.id)}
+                                                className="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors text-sm"
+                                            >
+                                                반려
+                                            </button>
                                             <button
                                                 onClick={() => handleVerifyLawyer(lawyer.id)}
                                                 className="px-6 py-3 bg-main text-white rounded-xl font-semibold hover:bg-main/90 transition-colors shadow-sm whitespace-nowrap text-sm"
