@@ -3,7 +3,7 @@
 import { API_BASE } from "@/lib/api";
 
 import { useState, useEffect } from "react";
-import { CheckIcon, XMarkIcon, ArrowPathIcon, DocumentTextIcon } from "@heroicons/react/24/solid";
+import { CheckIcon, XMarkIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import AdminMenu from "../../components/AdminMenu";
 
@@ -183,53 +183,9 @@ export default function AdminDashboard() {
                         )}
                     </section>
 
-                    {/* Recent AI Blog Drafts */}
-                    <section>
-                        <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-main">
-                            <DocumentTextIcon className="w-6 h-6 text-point" />
-                            최근 생성된 AI 블로그 초안
-                        </h2>
+                    {/* Recent AI Blog Drafts - fetched from API */}
+                    {/* Section removed: mock data cleared */}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[
-                                { title: "음주운전 처벌 기준 강화, 어떻게 대응해야 할까?", lawyer_name: "김철수", lawyer_id: "cheolsoo_kim", date: "2024.03.15", status: "review_needed", content: "최근 개정된 도로교통법에 따르면 음주운전 처벌 기준이 대폭 강화되었습니다. 특히 혈중알코올농도 0.03% 이상..." },
-                                { title: "전세사기 피해 예방을 위한 5가지 체크리스트", lawyer_name: "이영희", lawyer_id: "younghee_lee", date: "2024.03.14", status: "approved", content: "전세 계약 전 반드시 확인해야 할 사항들을 정리했습니다. 등기부등본 확인은 기본이며, 집주인의 세금 체납 여부도..." },
-                                { title: "이혼 소송 시 재산분할, 이것만은 꼭 알아두세요", lawyer_name: "박민수", lawyer_id: "minsoo_park", date: "2024.03.13", status: "rejected", content: "재산분할은 이혼 소송에서 가장 치열하게 다투는 부분 중 하나입니다. 기여도를 입증하는 것이 무엇보다 중요한데..." },
-                            ].map((item, index) => (
-                                <div key={index} className="bg-white p-6 rounded-[24px] border border-point/20 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            {item.status === 'review_needed' && <span className="inline-block px-2 py-1 bg-point/10 text-[10px] font-bold rounded-md uppercase mb-2 text-point">Review Needed</span>}
-                                            {item.status === 'approved' && <span className="inline-block px-2 py-1 bg-green-100 text-[10px] font-bold rounded-md uppercase mb-2 text-green-600">Approved</span>}
-                                            {item.status === 'rejected' && <span className="inline-block px-2 py-1 bg-red-100 text-[10px] font-bold rounded-md uppercase mb-2 text-red-600">Rejected</span>}
-
-                                            <h3 className="text-xl font-serif font-bold mb-1 tracking-tight text-main line-clamp-1">{item.title}</h3>
-                                            <p className="text-xs text-zinc-500 font-medium">
-                                                변호사: <span className="text-main font-semibold">{item.lawyer_name}</span> ({item.lawyer_id}) | 요청일: {item.date}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-background p-5 rounded-2xl mb-5 text-sm leading-relaxed text-foreground line-clamp-3">
-                                        {item.content}
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <button className="flex-1 py-3 text-xs font-bold uppercase tracking-wide rounded-xl border border-point/20 hover:bg-point/5 text-zinc-500 transition-colors">
-                                            미리보기
-                                        </button>
-                                        <button className="flex-1 py-3 text-xs font-bold uppercase tracking-wide rounded-xl bg-main text-white hover:bg-main/90 transition-colors shadow-sm">
-                                            {item.status === 'review_needed' ? '검토하기' : '상세보기'}
-                                        </button>
-                                    </div>
-                                    <details className="mt-4 text-xs text-zinc-400 cursor-pointer">
-                                        <summary className="font-medium hover:text-main transition-colors">전체 본문 보기</summary>
-                                        <p className="mt-3 p-5 bg-background rounded-2xl text-foreground leading-relaxed">{item.content}</p>
-                                    </details>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
 
                     {/* 2. Content Submission Approvals */}
                     <section>
