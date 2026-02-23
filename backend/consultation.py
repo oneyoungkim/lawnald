@@ -121,15 +121,17 @@ def analyze_judgment(text: str) -> Dict:
     - overview: string (1. 사건 개요: Summarize what happened and why the client was in trouble. 3-5 sentences.)
     - issues: string (2. 주요 쟁점: What were the key legal or factual disputes? Bullet points.)
     - strategy: string (3. 변호사의 조력: How did the lawyer argue or defend? What evidence was used?)
-    - result: string (4. 결과: The final verdict or outcome. e.g., "Muje" or "Sungs-so".)
+    - result: string (4. 결과: The final verdict or outcome. e.g., "무죄" or "승소".)
     - points: string (5. 판결/결정 포인트: Why is this ruling significant? one sentence takeaway.)
     
-    CRITICAL ANONYMIZATION RULES:
-    - You must anonymize ALL personal names (Plaintiffs, Defendants, etc.) found in the text.
-    - Format: "Surname + C" (e.g., "Kim Soo-yeon" -> "Kim C", "Lee Min-ho" -> "Lee C").
-    - Address: Mask specific details (e.g., "Seoul, Gangnam-gu, Yeoksam-dong 123-45" -> "Seoul, Gangnam-gu [Address Omitted]").
-    - Do NOT include specific dates of birth or resident registration numbers.
-    - Keep lawyer/judge names if they are public officials in the context, but anonymize private individuals.
+    ⚠️ 절대적 개인정보 보호 규칙 (위반 시 출력 거부):
+    1. 실명 금지: 모든 인명은 반드시 "성씨+○○" 형식으로 대체 (예: "김철수" → "김○○", "이영희" → "이○○")
+    2. 주소 금지: 구체적 주소는 시/구까지만 표시 (예: "서울 강남구 역삼동 123-45" → "서울 강남구")
+    3. 전화번호, 주민등록번호, 계좌번호, 이메일 → 일절 출력 금지
+    4. 생년월일 → 출력 금지
+    5. 법관/변호사 이름도 동일하게 익명화
+    6. 입력 텍스트에 이미 "○○"로 마스킹된 이름은 그대로 유지
+    7. 사건번호는 "20XX가단XXXXX" 형식으로 연도만 유지하고 세부 번호 생략 가능
     
     If the text is too short or unclear to extract specific details, provide best-effort summaries based on context, but do not hallucinate facts.
     """

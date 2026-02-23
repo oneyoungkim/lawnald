@@ -1088,13 +1088,11 @@ async def upload_case_pdf(lawyer_id: str = Form(...), file: UploadFile = File(..
     # 3. Mask PII
     masked_text = mask_pii(text)
     
-    # 4. Generate Draft with LLM
+    # 4. Generate Draft with LLM — 마스킹된 텍스트를 전달하여 개인정보 유출 방지
     from consultation import analyze_judgment  # type: ignore
     
-    # We pass the ORIGINAL text to the LLM so it can identify names (e.g. "Kim Soo-yeon") 
-    # and anonymize them stylistically (e.g. "Kim C") as per the prompt instructions.
     try:
-        analysis = analyze_judgment(text)
+        analysis = analyze_judgment(masked_text)
     except Exception as e:
         print(f"⚠️ AI 판결문 분석 실패: {e}")
         analysis = {
