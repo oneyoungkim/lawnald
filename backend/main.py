@@ -40,6 +40,91 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Visitor Tracking ---
+import time as _time
+
+# In-memory visitor tracking (resets on server restart)
+_visitor_data = {
+    "date": datetime.now().strftime("%Y-%m-%d"),
+    "unique_ips": set(),
+    "page_views": 0,
+    "session_starts": {},  # ip -> first_seen timestamp
+    "total_duration": 0.0,
+    "session_count": 0,
+}
+
+def _reset_if_new_day():
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _visitor_data["date"] != today:
+        _visitor_data["date"] = today
+        _visitor_data["unique_ips"] = set()
+        _visitor_data["page_views"] = 0
+        _visitor_data["session_starts"] = {}
+        _visitor_data["total_duration"] = 0.0
+        _visitor_data["session_count"] = 0
+
+@app.middleware("http")
+async def visitor_tracking_middleware(request, call_next):
+    _reset_if_new_day()
+    
+    # Only track actual page/API requests, skip static files
+    path = request.url.path
+    if not path.startswith(("/_next", "/static", "/favicon", "/og-")):
+        client_ip = request.client.host if request.client else "unknown"
+        _visitor_data["unique_ips"].add(client_ip)
+        _visitor_data["page_views"] += 1
+        
+        # Track session duration
+        now = _time.time()
+        if client_ip not in _visitor_data["session_starts"]:
+            _visitor_data["session_starts"][client_ip] = now
+        else:
+            elapsed = now - _visitor_data["session_starts"][client_ip]
+            if elapsed > 1800:  # 30min = new session
+                _visitor_data["total_duration"] += min(elapsed, 1800)
+                _visitor_data["session_count"] += 1
+                _visitor_data["session_starts"][client_ip] = now
+    
+    response = await call_next(request)
+    return response
+
+@app.get("/api/admin/stats")
+def get_admin_stats():
+    _reset_if_new_day()
+    
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    
+    # Count today's consultations
+    today_consultations = 0
+    try:
+        for c in CONSULTATIONS_DB:
+            created = c.get("created_at", "")
+            if isinstance(created, str) and created.startswith(today_str):
+                today_consultations += 1
+    except (NameError, Exception):
+        pass
+    
+    # Calculate average duration
+    if _visitor_data["session_count"] > 0:
+        avg_sec = _visitor_data["total_duration"] / _visitor_data["session_count"]
+        mins = int(avg_sec // 60)
+        secs = int(avg_sec % 60)
+        avg_duration = f"{mins}분 {secs}초"
+    else:
+        # Estimate from unique visitors if no completed sessions yet
+        visitors = len(_visitor_data["unique_ips"])
+        if visitors > 0:
+            avg_duration = "계산 중..."
+        else:
+            avg_duration = "0분 0초"
+    
+    return {
+        "today_consultations": today_consultations,
+        "visitors": len(_visitor_data["unique_ips"]),
+        "page_views": _visitor_data["page_views"],
+        "avg_duration": avg_duration,
+    }
+
 # --- WebSocket Setup (Declared early) ---
 try:
     from backend.chat import chat_manager
