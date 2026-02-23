@@ -1,259 +1,350 @@
 "use client";
 
 import { API_BASE } from "@/lib/api";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import LawyerMenu from "../components/LawyerMenu";
 import Image from "next/image";
+
+const EXPERTISE_OPTIONS = [
+    "이혼·가사", "형사", "민사", "부동산", "행정", "노동", "의료", "교통사고",
+    "성범죄", "마약", "상속", "채권추심", "손해배상", "회사법", "지식재산권",
+    "파산·회생", "국가배상", "소비자", "국제", "군형법", "기타"
+];
 
 export default function LawyerProfilePage() {
     const router = useRouter();
     const [lawyer, setLawyer] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        firm: "",
-        location: "",
-        phone: "",
-        homepage: "",
-        career: "",
-        education: "",
-        expertise: "", // comma separated string for UI
-        introduction_short: "",
-        introduction_long: ""
-    });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Form fields
+    const [name, setName] = useState("");
+    const [firm, setFirm] = useState("");
+    const [phone, setPhone] = useState("");
+    const [location, setLocation] = useState("");
+    const [career, setCareer] = useState("");
+    const [education, setEducation] = useState("");
+    const [expertise, setExpertise] = useState<string[]>([]);
+    const [introShort, setIntroShort] = useState("");
+    const [introLong, setIntroLong] = useState("");
+    const [homepage, setHomepage] = useState("");
+    const [kakaoId, setKakaoId] = useState("");
+    const [imageUrl, setImageUrl] = useState("");
 
     useEffect(() => {
         const stored = localStorage.getItem("lawyer_user");
-        if (stored) {
-            const data = JSON.parse(stored);
-            setLawyer(data);
-            setFormData({
-                firm: data.firm || "",
-                location: data.location || "",
-                phone: data.phone || "",
-                homepage: data.homepage || "",
-                career: data.career || "",
-                education: data.education || "",
-                expertise: (data.expertise || []).join(", "),
-                introduction_short: data.introduction_short || "",
-                introduction_long: data.introduction_long || ""
-            });
-        } else {
+        if (!stored) {
             router.push("/login");
+            return;
         }
+        const parsed = JSON.parse(stored);
+
+        // Fetch latest data from server
+        fetch(`${API_BASE}/api/lawyers/${parsed.id}`)
+            .then(res => res.json())
+            .then(data => {
+                setLawyer(data);
+                setName(data.name || "");
+                setFirm(data.firm || "");
+                setPhone(data.phone || "");
+                setLocation(data.location || "");
+                // Don't show default career from signup
+                const c = data.career || "";
+                setCareer(c.startsWith("변호사 자격증 번호:") ? "" : c);
+                setEducation(data.education || "");
+                setExpertise(data.expertise?.filter((e: string) => e !== "일반") || []);
+                setIntroShort(data.introduction_short || "");
+                setIntroLong(data.introduction_long || "");
+                setHomepage(data.homepage || "");
+                setKakaoId(data.kakao_id || "");
+                setImageUrl(data.imageUrl || "");
+                setLoading(false);
+            })
+            .catch(() => {
+                setLawyer(parsed);
+                setLoading(false);
+            });
     }, [router]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !lawyer) return;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-
-        try {
-            if (!lawyer.id) {
-                alert("로그인 정보가 올바르지 않습니다.");
-                return;
-            }
-
-            const encodedId = encodeURIComponent(lawyer.id);
-            // Use admin endpoint for updates
-            console.log("Updating profile for:", encodedId);
-
-            const res = await fetch(`${API_BASE}/api/admin/lawyers/${encodedId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    firm: formData.firm,
-                    location: formData.location,
-                    phone: formData.phone,
-                    homepage: formData.homepage,
-                    career: formData.career,
-                    education: formData.education,
-                    expertise: formData.expertise.split(",").map(s => s.trim()).filter(Boolean),
-                    introduction_short: formData.introduction_short,
-                    introduction_long: formData.introduction_long
-                })
-            });
-
-            if (res.ok) {
-                const updated = await res.json();
-                // Update local storage
-                localStorage.setItem("lawyer_user", JSON.stringify(updated.lawyer));
-                setLawyer(updated.lawyer);
-                alert("프로필이 수정되었습니다.");
-                router.push("/lawyer/dashboard");
-            } else {
-                const errorData = await res.text();
-                console.error("Update failed:", errorData);
-                alert(`수정 실패: ${errorData}`);
-            }
-        } catch (error) {
-            console.error(error);
-            alert("서버 연결 오류 발생");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || !e.target.files[0]) return;
-        const file = e.target.files[0];
-
-        if (!lawyer.id) return;
-        const encodedId = encodeURIComponent(lawyer.id);
-
+        setUploading(true);
         const formData = new FormData();
         formData.append("file", file);
 
         try {
-            setLoading(true);
-            const res = await fetch(`${API_BASE}/api/lawyers/${encodedId}/upload-photo`, {
+            const res = await fetch(`${API_BASE}/api/lawyers/${lawyer.id}/upload-photo`, {
                 method: "POST",
-                body: formData
+                body: formData,
             });
-
-            if (res.ok) {
-                const data = await res.json();
-                // Merge updates
-                const updatedLawyer = { ...lawyer, ...data.lawyer, cutoutImageUrl: data.cutoutImageUrl, imageUrl: data.cutoutImageUrl };
-                // Fix: API returns cutoutImageUrl and status, but we might want to refresh full lawyer object or manual patch
-
-                // Let's manually patch the image URLs to be sure
-                const timestamp = new Date().getTime();
-                const newImageUrl = `${data.cutoutImageUrl}?t=${timestamp}`;
-
-                updatedLawyer.cutoutImageUrl = newImageUrl;
-                updatedLawyer.imageUrl = newImageUrl;
-
-                setLawyer(updatedLawyer);
-                localStorage.setItem("lawyer_user", JSON.stringify(updatedLawyer));
-                alert("사진이 업로드되었습니다.");
-            } else {
-                const errorData = await res.text();
-                console.error("Upload failed:", errorData);
-                alert(`사진 업로드 실패: ${errorData}`);
+            const data = await res.json();
+            if (data.imageUrl) {
+                setImageUrl(data.imageUrl);
             }
-        } catch (error) {
-            console.error(error);
-            alert("업로드 중 서버 오류 발생");
+        } catch (err) {
+            console.error("Photo upload failed:", err);
         } finally {
-            setLoading(false);
+            setUploading(false);
         }
     };
 
-    if (!lawyer) return null;
+    const toggleExpertise = (exp: string) => {
+        setExpertise(prev =>
+            prev.includes(exp) ? prev.filter(e => e !== exp) : [...prev, exp]
+        );
+    };
+
+    const handleSave = async () => {
+        if (!lawyer) return;
+        setSaving(true);
+        setSaved(false);
+
+        const updateData: any = {
+            name,
+            firm,
+            phone,
+            location,
+            career: career || undefined,
+            education: education || undefined,
+            expertise: expertise.length > 0 ? expertise : ["일반"],
+            introduction_short: introShort || undefined,
+            introduction_long: introLong || undefined,
+            homepage: homepage || undefined,
+            kakao_id: kakaoId || undefined,
+        };
+
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${lawyer.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updateData),
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                // Update localStorage
+                const stored = localStorage.getItem("lawyer_user");
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    const updated = { ...parsed, ...updateData };
+                    localStorage.setItem("lawyer_user", JSON.stringify(updated));
+                }
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            }
+        } catch (err) {
+            console.error("Save failed:", err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <main className="min-h-screen bg-[#FAFAFA] dark:bg-[#0a0a0a]">
+                <LawyerMenu />
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="w-10 h-10 border-4 border-gray-200 border-t-gray-800 rounded-full animate-spin" />
+                </div>
+            </main>
+        );
+    }
 
     return (
-        <main className="min-h-screen bg-[#F8FAFC]">
-            <div className="max-w-4xl mx-auto px-6 py-12">
-                <Link href="/lawyer/dashboard" className="text-sm font-bold text-gray-400 hover:text-[#1E293B] mb-8 inline-block">
-                    &larr; 대시보드로 돌아가기
-                </Link>
+        <main className="min-h-screen bg-[#FAFAFA] dark:bg-[#0a0a0a] font-sans">
+            <LawyerMenu />
 
-                <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-8">
-                        <h1 className="text-2xl font-bold text-[#1E293B]">변호사 프로필 수정</h1>
-                        <button
-                            type="submit"
-                            form="profile-form"
-                            disabled={loading}
-                            className="bg-[#1E293B] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#0f172a] disabled:opacity-50 transition-colors"
-                        >
-                            {loading ? "저장 중..." : "변경사항 저장"}
-                        </button>
-                    </div>
-                    {/* Photo Section */}
-                    <section className="flex flex-col sm:flex-row gap-8 items-center sm:items-start border-b border-neutral-100 dark:border-zinc-800 pb-8">
-                        <div className="relative w-32 h-32 rounded-full overflow-hidden bg-neutral-100 border border-neutral-200">
-                            {lawyer.cutoutImageUrl ? (
+            {/* Header */}
+            <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#18181b]/80 backdrop-blur-xl border-b border-gray-100 dark:border-zinc-800">
+                <div className="max-w-3xl mx-auto px-6 py-4 flex justify-between items-center">
+                    <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">프로필 설정</h1>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${saved
+                                ? "bg-green-500 text-white"
+                                : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90"
+                            } disabled:opacity-50`}
+                    >
+                        {saving ? "저장 중..." : saved ? "✓ 저장됨" : "저장"}
+                    </button>
+                </div>
+            </header>
+
+            <div className="max-w-3xl mx-auto px-6 py-10 space-y-10">
+                {/* Profile Photo */}
+                <section className="bg-white dark:bg-[#1c1c1e] rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-zinc-800">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">프로필 사진</h2>
+                    <div className="flex items-center gap-6">
+                        <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-zinc-800 border-2 border-gray-200 dark:border-zinc-700">
+                            {imageUrl ? (
                                 <Image
-                                    src={
-                                        (lawyer.cutoutImageUrl.startsWith("http")
-                                            ? lawyer.cutoutImageUrl
-                                            : `${API_BASE}${lawyer.cutoutImageUrl}`
-                                        ).replace("localhost", "127.0.0.1")
-                                    }
-                                    alt="Profile"
-                                    width={128}
-                                    height={128}
-                                    className="object-cover rounded-full"
+                                    src={imageUrl.startsWith("/") ? `${API_BASE}${imageUrl}` : imageUrl}
+                                    alt="프로필"
+                                    width={96}
+                                    height={96}
+                                    className="object-cover w-full h-full"
                                     unoptimized
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-neutral-400">No Image</div>
+                                <div className="w-full h-full flex items-center justify-center text-3xl text-gray-300">👤</div>
+                            )}
+                            {uploading && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                </div>
                             )}
                         </div>
-                        <div className="flex-1 space-y-2 text-center sm:text-left">
-                            <h3 className="font-bold text-lg">프로필 사진</h3>
-                            <p className="text-sm text-neutral-500">
-                                배경이 깔끔한 정면 사진을 권장합니다.<br />
-                                <span className="text-blue-600 font-bold">권장 사이즈: 800 x 1200px (3:4 비율, 세로형)</span>
-                            </p>
-                            <label className="inline-block px-4 py-2 bg-black text-white text-sm rounded-lg cursor-pointer hover:opacity-80 transition-opacity">
-                                <span>사진 변경하기</span>
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                            </label>
-                        </div>
-                    </section>
-
-                    {/* Info Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-bold mb-1">소속 (로펌)</label>
-                                <input type="text" name="firm" value={formData.firm} onChange={handleChange} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-1">활동 지역</label>
-                                <input type="text" name="location" value={formData.location} onChange={handleChange} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-1">연락처</label>
-                                <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-1">홈페이지/블로그 URL</label>
-                                <input type="text" name="homepage" value={formData.homepage} onChange={handleChange} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" placeholder="https://" />
-                            </div>
-                        </div>
-
                         <div>
-                            <label className="block text-sm font-bold mb-1">주력 분야 (콤마로 구분)</label>
-                            <input type="text" name="expertise" value={formData.expertise} onChange={handleChange} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" placeholder="형사, 이혼, 부동산 등" />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-bold mb-1">한줄 소개 (Hero Section)</label>
-                            <input type="text" name="introduction_short" value={formData.introduction_short} onChange={handleChange} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" placeholder="예: 당신의 복잡한 법률 문제를 명쾌하게 해결합니다." />
-                            <p className="text-xs text-neutral-400 mt-1">프로필 최상단 이름 옆에 표시되는 짧은 문구입니다.</p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-bold mb-1">상세 소개 (About Tab)</label>
-                            <textarea name="introduction_long" value={formData.introduction_long} onChange={handleChange} rows={6} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" placeholder="변호사님을 상세히 소개하는 글을 작성해주세요."></textarea>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-bold mb-1">주요 경력</label>
-                            <textarea name="career" value={formData.career} onChange={handleChange} rows={4} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" placeholder="예: 무죄 판결 다수 이력, OO지방검찰청 검사 출신 등"></textarea>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-bold mb-1">학력</label>
-                            <textarea name="education" value={formData.education} onChange={handleChange} rows={3} className="w-full p-3 bg-neutral-50 rounded-lg border border-neutral-200" placeholder="예: 서울대학교 법과대학 졸업"></textarea>
-                        </div>
-
-                        <div className="pt-4">
-                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-colors">
-                                {loading ? "저장 중..." : "변경사항 저장"}
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="px-4 py-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 rounded-xl transition-colors"
+                            >
+                                사진 변경
                             </button>
+                            <p className="text-xs text-gray-400 mt-2">정사각형 사진 권장 (최대 5MB)</p>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoUpload}
+                                className="hidden"
+                            />
                         </div>
-                    </form>
+                    </div>
+                </section>
+
+                {/* Basic Info */}
+                <section className="bg-white dark:bg-[#1c1c1e] rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-zinc-800">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">기본 정보</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <Field label="이름" value={name} onChange={setName} placeholder="홍길동" />
+                        <Field label="소속" value={firm} onChange={setFirm} placeholder="법무법인 OO" />
+                        <Field label="전화번호" value={phone} onChange={setPhone} placeholder="010-0000-0000" />
+                        <Field label="지역" value={location} onChange={setLocation} placeholder="서울 강남구" />
+                        <Field label="홈페이지" value={homepage} onChange={setHomepage} placeholder="https://..." />
+                        <Field label="카카오톡 ID" value={kakaoId} onChange={setKakaoId} placeholder="카카오 상담 ID" />
+                    </div>
+                </section>
+
+                {/* Career & Education */}
+                <section className="bg-white dark:bg-[#1c1c1e] rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-zinc-800">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">경력 및 학력</h2>
+                    <div className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">경력</label>
+                            <textarea
+                                value={career}
+                                onChange={(e) => setCareer(e.target.value)}
+                                placeholder={"법무법인 OO (2018~현재)\n서울중앙지방법원 사법연수원 (47기)\n법무법인 △△ (2015~2018)"}
+                                rows={4}
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none resize-none transition-all"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">줄바꿈으로 항목을 구분해주세요</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">학력</label>
+                            <textarea
+                                value={education}
+                                onChange={(e) => setEducation(e.target.value)}
+                                placeholder={"서울대학교 법학전문대학원 (J.D.)\n고려대학교 법학과 (학사)"}
+                                rows={3}
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none resize-none transition-all"
+                            />
+                        </div>
+                    </div>
+                </section>
+
+                {/* Expertise */}
+                <section className="bg-white dark:bg-[#1c1c1e] rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-zinc-800">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-2">전문 분야</h2>
+                    <p className="text-xs text-gray-400 mb-5">해당되는 분야를 모두 선택해주세요</p>
+                    <div className="flex flex-wrap gap-2">
+                        {EXPERTISE_OPTIONS.map(exp => (
+                            <button
+                                key={exp}
+                                type="button"
+                                onClick={() => toggleExpertise(exp)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${expertise.includes(exp)
+                                        ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-sm"
+                                        : "bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border-gray-200 dark:border-zinc-700 hover:border-gray-400 dark:hover:border-zinc-500"
+                                    }`}
+                            >
+                                {exp}
+                            </button>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Introduction */}
+                <section className="bg-white dark:bg-[#1c1c1e] rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-zinc-800">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6">변호사 소개</h2>
+                    <div className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">한줄 소개</label>
+                            <input
+                                type="text"
+                                value={introShort}
+                                onChange={(e) => setIntroShort(e.target.value)}
+                                placeholder="의뢰인의 권리를 최우선으로 생각하는 변호사입니다."
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none transition-all"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">상세 소개</label>
+                            <textarea
+                                value={introLong}
+                                onChange={(e) => setIntroLong(e.target.value)}
+                                placeholder={"안녕하세요, OO 법무법인의 OOO 변호사입니다.\n\n풍부한 실무 경험을 바탕으로 의뢰인에게 최적의 법률 서비스를 제공합니다.\n복잡한 법률 문제도 명쾌하게 해결해 드리겠습니다."}
+                                rows={6}
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none resize-none transition-all"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">프로필 페이지에 표시되는 소개글입니다</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Save Button (Bottom) */}
+                <div className="flex justify-end pb-10">
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${saved
+                                ? "bg-green-500 text-white shadow-lg shadow-green-500/20"
+                                : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 shadow-lg shadow-gray-900/10"
+                            } disabled:opacity-50`}
+                    >
+                        {saving ? "저장 중..." : saved ? "✓ 저장 완료!" : "변경사항 저장"}
+                    </button>
                 </div>
             </div>
         </main>
+    );
+}
+
+// Reusable Field Component
+function Field({ label, value, onChange, placeholder }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder: string;
+}) {
+    return (
+        <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{label}</label>
+            <input
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:border-transparent outline-none transition-all"
+            />
+        </div>
     );
 }
