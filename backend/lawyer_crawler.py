@@ -33,24 +33,27 @@ EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 # ── 법률 분야별 키워드 맵 ─────────────────────────────
 LEGAL_KEYWORDS = {
-    "이혼": ["이혼 변호사", "이혼소송 상담", "양육권 변호사", "재산분할 변호사", "협의이혼 절차"],
-    "전세사기": ["전세사기 변호사", "전세보증금 반환", "전세사기 대응", "임대차 분쟁 변호사"],
-    "형사": ["형사 변호사", "성범죄 변호사", "음주운전 변호사", "폭행 변호사", "사기죄 변호사"],
-    "부동산": ["부동산 변호사", "명도소송", "부동산 분쟁", "건물 소유권 변호사"],
-    "상속": ["상속 변호사", "유산 분쟁", "상속세 상담", "유언장 변호사"],
-    "노동": ["노동 변호사", "부당해고 상담", "임금체불 변호사", "근로계약 분쟁"],
-    "교통사고": ["교통사고 변호사", "교통사고 합의금", "자동차 사고 변호사"],
-    "의료": ["의료사고 변호사", "의료과실 소송", "의료분쟁 상담"],
-    "민사": ["민사소송 변호사", "손해배상 변호사", "채권추심 변호사"],
-    "기업": ["기업 법무", "법인 변호사", "기업 소송", "계약서 검토"],
+    "이혼": ["이혼 변호사", "이혼소송 변호사", "양육권 변호사", "재산분할 변호사", "협의이혼 변호사", "위자료 변호사"],
+    "전세사기": ["전세사기 변호사", "전세보증금 변호사", "임대차 변호사", "전세 피해 변호사", "보증금 반환 변호사"],
+    "형사": ["형사 변호사", "성범죄 변호사", "음주운전 변호사", "폭행 변호사", "사기죄 변호사", "마약 변호사"],
+    "부동산": ["부동산 변호사", "명도소송 변호사", "부동산 분쟁 변호사", "건축 변호사", "재개발 변호사"],
+    "상속": ["상속 변호사", "유산 분쟁 변호사", "상속세 변호사", "유언장 변호사", "상속포기 변호사"],
+    "노동": ["노동 변호사", "부당해고 변호사", "임금체불 변호사", "근로계약 변호사", "산재 변호사"],
+    "교통사고": ["교통사고 변호사", "교통사고 합의 변호사", "자동차 사고 변호사", "뺑소니 변호사"],
+    "의료": ["의료사고 변호사", "의료과실 변호사", "의료분쟁 변호사", "의료소송 변호사"],
+    "민사": ["민사소송 변호사", "손해배상 변호사", "채권추심 변호사", "민사 분쟁 변호사"],
+    "기업": ["기업 법무 변호사", "법인 변호사", "기업 소송 변호사", "계약서 검토 변호사", "스타트업 변호사"],
 }
 
-# 이메일 제외 도메인
+# 이메일 제외 도메인 (gmail.com은 제외하지 않음 — 많은 변호사가 Gmail 사용)
 EXCLUDED_EMAIL_DOMAINS = [
     "noreply", "example.com", "navercorp", "naver.com",
-    "google.com", "youtube.com", "gmail.com", "daum.net",
+    "google.com", "youtube.com", "daum.net",
     "hanmail.net", "kakao.com", "test.com"
 ]
+
+# 전화번호 추출 정규식
+PHONE_REGEX = re.compile(r"(0\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4})")
 
 
 # ── 유틸리티 ──────────────────────────────────────────
@@ -100,7 +103,17 @@ def _is_valid_lawyer_email(email: str) -> bool:
     for excluded in EXCLUDED_EMAIL_DOMAINS:
         if excluded in lower:
             return False
+    # 너무 짧은 이메일 제외 (spam 방지)
+    if len(lower) < 5:
+        return False
     return True
+
+
+def _ensure_lawyer_keyword(keyword: str) -> str:
+    """키워드에 '변호사'가 포함되어 있지 않으면 자동 추가"""
+    if "변호사" not in keyword and "법무" not in keyword and "로펌" not in keyword:
+        return f"{keyword} 변호사"
+    return keyword
 
 
 def _format_subscribers(count: int) -> str:
@@ -263,7 +276,8 @@ class NaverBlogCrawler:
                         keyword_map[kw] = cat
             search_items = list(keyword_map.items())
         elif keywords:
-            search_items = [(kw, kw) for kw in keywords]
+            # 사용자 키워드에 '변호사' 자동 추가
+            search_items = [(_ensure_lawyer_keyword(kw), kw) for kw in keywords]
         else:
             # 기본: 모든 법률 카테고리
             keyword_map = {}
@@ -297,20 +311,30 @@ class NaverBlogCrawler:
 
                 soup = BeautifulSoup(resp.text, "html.parser")
 
-                # 블로그 포스트 링크 추출
+                # 블로그 포스트 링크 추출 (다양한 셀렉터 시도)
                 blog_links = []
+                # 셀렉터 1: 일반적인 네이버 블로그 검색 결과
                 for a_tag in soup.select("a.api_txt_lines.total_tit"):
                     href = a_tag.get("href", "")
                     if href and "blog.naver.com" in href:
                         blog_links.append(href)
 
+                # 셀렉터 2: 대체 구조
                 if not blog_links:
                     for a_tag in soup.select(".total_wrap a[href*='blog.naver.com']"):
                         href = a_tag.get("href", "")
                         if href:
                             blog_links.append(href)
 
-                blog_links = blog_links[:max_results_per_keyword]
+                # 셀렉터 3: 더 넓은 범위 - 모든 네이버 블로그 링크
+                if not blog_links:
+                    for a_tag in soup.find_all("a", href=True):
+                        href = a_tag["href"]
+                        if "blog.naver.com" in href and href not in blog_links:
+                            blog_links.append(href)
+
+                # 중복 제거 및 제한
+                blog_links = list(dict.fromkeys(blog_links))[:max_results_per_keyword]
                 print(f"  📋 블로그 링크 {len(blog_links)}개 발견")
 
                 for link in blog_links:
@@ -408,6 +432,12 @@ class NaverBlogCrawler:
             if firm_match:
                 firm = firm_match.group(0)
 
+            # 전화번호 추출 (보조 연락처)
+            phone = ""
+            phone_match = PHONE_REGEX.search(text) or PHONE_REGEX.search(full_text)
+            if phone_match:
+                phone = phone_match.group(1)
+
             # 블로그 제목에서 보완
             title_el = soup.find("title")
             if title_el and not name:
@@ -416,11 +446,14 @@ class NaverBlogCrawler:
                 if title_name:
                     name = title_name.group(1)
 
-            return {
+            result = {
                 "name": name or "미확인",
                 "firm": firm,
                 "email": valid_emails[0],
             }
+            if phone:
+                result["phone"] = phone
+            return result
 
         except Exception:
             return None
@@ -451,7 +484,8 @@ class YouTubeCrawler:
                         keyword_map[kw] = cat
             search_items = list(keyword_map.items())
         elif keywords:
-            search_items = [(kw, kw) for kw in keywords]
+            # 사용자 키워드에 '변호사' 자동 추가
+            search_items = [(_ensure_lawyer_keyword(kw), kw) for kw in keywords]
         else:
             keyword_map = {}
             for cat, kws in LEGAL_KEYWORDS.items():

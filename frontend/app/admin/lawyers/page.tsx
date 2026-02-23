@@ -4,7 +4,7 @@ import { API_BASE } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { ArrowLeftIcon, PlusIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 
 interface Lawyer {
     id: string;
@@ -113,6 +113,36 @@ export default function AdminLawyersPage() {
         }
     };
 
+    const handleVerify = async (lawyerId: string, name: string) => {
+        if (!confirm(`${name} 변호사를 승인하시겠습니까?`)) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${lawyerId}/verify`, { method: "POST" });
+            if (res.ok) {
+                alert(`${name} 변호사가 승인되었습니다.`);
+                fetchLawyers();
+            } else {
+                alert("승인 실패");
+            }
+        } catch (error) {
+            alert("서버 통신 오류");
+        }
+    };
+
+    const handleReject = async (lawyerId: string, name: string) => {
+        if (!confirm(`${name} 변호사의 가입을 반려하시겠습니까? 데이터가 삭제됩니다.`)) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${lawyerId}/reject`, { method: "POST" });
+            if (res.ok) {
+                alert(`${name} 변호사의 가입이 반려되었습니다.`);
+                fetchLawyers();
+            } else {
+                alert("반려 실패");
+            }
+        } catch (error) {
+            alert("서버 통신 오류");
+        }
+    };
+
     const filteredLawyers = lawyers.filter(l =>
         l.name.includes(searchTerm) || l.id.includes(searchTerm)
     );
@@ -142,8 +172,8 @@ export default function AdminLawyersPage() {
                         <button
                             onClick={() => setSortMode("recent")}
                             className={`px-4 py-3 text-sm font-bold transition-colors whitespace-nowrap ${sortMode === "recent"
-                                    ? "bg-blue-600 text-white"
-                                    : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-zinc-800"
+                                ? "bg-blue-600 text-white"
+                                : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-zinc-800"
                                 }`}
                         >
                             최근 가입순
@@ -151,8 +181,8 @@ export default function AdminLawyersPage() {
                         <button
                             onClick={() => setSortMode("name")}
                             className={`px-4 py-3 text-sm font-bold transition-colors whitespace-nowrap ${sortMode === "name"
-                                    ? "bg-blue-600 text-white"
-                                    : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-zinc-800"
+                                ? "bg-blue-600 text-white"
+                                : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-zinc-800"
                                 }`}
                         >
                             가나다 순
@@ -172,9 +202,17 @@ export default function AdminLawyersPage() {
                         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
                         return dateB - dateA;
                     }).map(lawyer => (
-                        <div key={lawyer.id} className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-800 flex justify-between items-center">
+                        <div key={lawyer.id} className={`bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border flex justify-between items-center ${lawyer.verified === false ? 'border-amber-300 bg-amber-50/30' : 'border-neutral-200 dark:border-zinc-800'}`}>
                             <div>
-                                <h3 className="text-lg font-bold">{lawyer.name} <span className="text-xs text-neutral-400 font-normal">({lawyer.id})</span></h3>
+                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                    {lawyer.name}
+                                    <span className="text-xs text-neutral-400 font-normal">({lawyer.id})</span>
+                                    {lawyer.verified === false ? (
+                                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full">⏳ 인증 대기</span>
+                                    ) : (
+                                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">✅ 인증완료</span>
+                                    )}
+                                </h3>
                                 <p className="text-sm text-neutral-500">{lawyer.firm}</p>
                                 <p className="text-xs text-blue-600 mt-1">{lawyer.content_highlights || "콘텐츠 없음"}</p>
                             </div>
@@ -217,6 +255,23 @@ export default function AdminLawyersPage() {
                                 >
                                     <PlusIcon className="w-3 h-3" /> 칼럼 +3
                                 </button>
+                                {lawyer.verified === false && (
+                                    <>
+                                        <div className="w-px h-6 bg-neutral-200" />
+                                        <button
+                                            onClick={() => handleVerify(lawyer.id, lawyer.name)}
+                                            className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded hover:bg-emerald-600 flex items-center gap-1 shadow-sm"
+                                        >
+                                            <CheckIcon className="w-3 h-3" /> 승인
+                                        </button>
+                                        <button
+                                            onClick={() => handleReject(lawyer.id, lawyer.name)}
+                                            className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 flex items-center gap-1 shadow-sm"
+                                        >
+                                            <XMarkIcon className="w-3 h-3" /> 반려
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     ))}
