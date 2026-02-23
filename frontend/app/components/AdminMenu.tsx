@@ -7,6 +7,7 @@ import {
     UserGroupIcon,
     DocumentTextIcon,
     PencilSquareIcon,
+    EnvelopeIcon,
     ArrowRightOnRectangleIcon
 } from "@heroicons/react/24/outline";
 
@@ -26,6 +27,7 @@ export default function AdminMenu() {
         { label: "승소사례 관리", href: "/admin/cases", icon: DocumentTextIcon },
         { label: "매거진 관리", href: "/admin/magazine", icon: DocumentTextIcon },
         { label: "공식 블로그 글쓰기", href: "/admin/blog/write", icon: PencilSquareIcon },
+        { label: "변호사 이메일 수집", href: "/admin/crawler", icon: EnvelopeIcon },
     ];
 
     return (

@@ -296,11 +296,16 @@ export default function AdminDashboard() {
 
 function AdminStats() {
     const [stats, setStats] = useState<any>(null);
+    const [crawlerStats, setCrawlerStats] = useState<any>(null);
 
     useEffect(() => {
         fetch(`${API_BASE}/api/admin/stats`)
             .then(res => res.json())
             .then(data => setStats(data))
+            .catch(err => console.error(err));
+        fetch(`${API_BASE}/api/admin/crawler/today-count`)
+            .then(res => res.json())
+            .then(data => setCrawlerStats(data))
             .catch(err => console.error(err));
     }, []);
 
@@ -311,10 +316,11 @@ function AdminStats() {
         { label: "오늘 방문자", value: stats.visitors ? stats.visitors.toLocaleString() : 0, unit: "명", color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
         { label: "페이지 뷰", value: stats.page_views ? stats.page_views.toLocaleString() : 0, unit: "회", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20" },
         { label: "평균 체류시간", value: stats.avg_duration, unit: "", color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-900/20" },
+        { label: "오늘 수집 파트너", value: crawlerStats?.today_count ?? 0, unit: "명", color: "text-indigo-500", bg: "bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20", extra: crawlerStats ? `총 ${crawlerStats.total}명` : "" },
     ];
 
     return (
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {items.map((item, idx) => (
                 <div key={idx} className="bg-white dark:bg-[#1c1c1e] p-6 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-4">
                     <div className={`p-3 rounded-2xl ${item.bg}`}>
@@ -325,6 +331,7 @@ function AdminStats() {
                         <p className="text-2xl font-bold text-[#1d1d1f] dark:text-white">
                             {item.value}<span className="text-sm font-normal text-[#86868b] ml-1">{item.unit}</span>
                         </p>
+                        {(item as any).extra && <p className="text-[10px] text-[#86868b] mt-0.5">{(item as any).extra}</p>}
                     </div>
                 </div>
             ))}
