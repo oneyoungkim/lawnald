@@ -548,6 +548,42 @@ def reject_lawyer(lawyer_id: str):
     save_lawyers_db(LAWYERS_DB)
     return {"message": f"{lawyer_name} 변호사의 가입이 반려되었습니다.", "lawyer_id": lawyer_id}
 
+# --- Batch Approval / Rejection ---
+
+class BatchLawyerRequest(BaseModel):
+    lawyer_ids: List[str]
+
+@app.post("/api/admin/lawyers/batch-verify")
+def batch_verify_lawyers(request: BatchLawyerRequest):
+    """변호사 일괄 승인"""
+    verified_count = 0
+    for lawyer_id in request.lawyer_ids:
+        lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+        if lawyer and not lawyer.get("verified", False):
+            lawyer["verified"] = True
+            verified_count += 1
+            # 파운딩 멤버 혜택
+            try:
+                from billing import set_founder_benefits, FOUNDER_LIMIT
+                total_verified = len([l for l in LAWYERS_DB if l.get("verified", False)])
+                if total_verified <= FOUNDER_LIMIT and not lawyer.get("is_founder"):
+                    set_founder_benefits(lawyer)
+            except ImportError:
+                pass
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{verified_count}명의 변호사가 승인되었습니다.", "verified_count": verified_count}
+
+@app.post("/api/admin/lawyers/batch-reject")
+def batch_reject_lawyers(request: BatchLawyerRequest):
+    """변호사 일괄 반려"""
+    global LAWYERS_DB
+    reject_ids = set(request.lawyer_ids)
+    original_count = len(LAWYERS_DB)
+    LAWYERS_DB = [l for l in LAWYERS_DB if l["id"] not in reject_ids or l.get("verified", False)]
+    rejected_count = original_count - len(LAWYERS_DB)
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{rejected_count}명의 변호사 가입이 반려되었습니다.", "rejected_count": rejected_count}
+
 # ── Social Login (Kakao / Naver) ──────────────────────────────
 class SocialLoginRequest(BaseModel):
     provider: str       # "kakao" | "naver"
