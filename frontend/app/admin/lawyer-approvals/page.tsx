@@ -4,7 +4,7 @@ import { API_BASE } from "@/lib/api";
 
 import { useEffect, useState } from "react";
 import { CheckIcon, XMarkIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
-import AdminMenu from "../../../components/AdminMenu";
+import AdminMenu from "../../components/AdminMenu";
 
 interface PendingLawyer {
     id: string;
