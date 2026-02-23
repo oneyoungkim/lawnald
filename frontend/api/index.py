@@ -2905,3 +2905,102 @@ def delete_content(content_id: str):
                 save_db()
                 return {"message": "Content deleted"}
     raise HTTPException(status_code=404, detail="Content not found")
+
+# --- Admin Lawyer Management ---
+
+class BatchLawyerIds(BaseModel):
+    lawyer_ids: List[str]
+
+class LawyerUpdateModel(BaseModel):
+    name: Optional[str] = None
+    firm: Optional[str] = None
+    location: Optional[str] = None
+    career: Optional[str] = None
+    education: Optional[str] = None
+    phone: Optional[str] = None
+    homepage: Optional[str] = None
+    kakao_id: Optional[str] = None
+    expertise: Optional[List[str]] = None
+    introduction_short: Optional[str] = None
+    introduction_long: Optional[str] = None
+
+@app.get("/api/admin/lawyers/pending")
+def get_pending_lawyers():
+    # 실제 가입 변호사 중 미인증된 변호사만 반환 (가상 변호사 제외)
+    return [l for l in LAWYERS_DB if l.get("verified") is False and not l.get("is_mock", False)]
+
+@app.post("/api/admin/lawyers/{lawyer_id}/verify")
+def verify_lawyer(lawyer_id: str):
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="변호사를 찾을 수 없습니다.")
+    
+    lawyer["verified"] = True
+    lawyer["location"] = lawyer["location"].replace(" (등록 대기)", "")
+    lawyer["matchScore"] = 50
+    lawyer["content_highlights"] = "신규 등록 변호사"
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": "변호사가 성공적으로 인증되었습니다.", "lawyer": lawyer}
+
+@app.post("/api/admin/lawyers/{lawyer_id}/reject")
+def reject_lawyer(lawyer_id: str):
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="변호사를 찾을 수 없습니다.")
+    
+    LAWYERS_DB.remove(lawyer)
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": "변호사 가입이 반려되었습니다."}
+
+@app.post("/api/admin/lawyers/batch-verify")
+def batch_verify_lawyers(data: BatchLawyerIds):
+    verified_count = 0
+    for lawyer_id in data.lawyer_ids:
+        lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+        if lawyer and lawyer.get("verified") is False:
+            lawyer["verified"] = True
+            lawyer["location"] = lawyer.get("location", "").replace(" (등록 대기)", "")
+            lawyer["matchScore"] = 50
+            lawyer["content_highlights"] = "신규 등록 변호사"
+            verified_count += 1
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{verified_count}명의 변호사가 승인되었습니다.", "count": verified_count}
+
+@app.post("/api/admin/lawyers/batch-reject")
+def batch_reject_lawyers(data: BatchLawyerIds):
+    rejected_count = 0
+    to_remove = []
+    for lawyer_id in data.lawyer_ids:
+        lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+        if lawyer and lawyer.get("verified") is False:
+            to_remove.append(lawyer)
+            rejected_count += 1
+    
+    for lawyer in to_remove:
+        LAWYERS_DB.remove(lawyer)
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{rejected_count}명의 변호사 가입이 반려되었습니다.", "count": rejected_count}
+
+@app.get("/api/admin/lawyers")
+def get_all_lawyers(q: Optional[str] = None, include_mock: bool = False):
+    filtered = LAWYERS_DB if include_mock else [l for l in LAWYERS_DB if not l.get("is_mock", False)]
+    if q:
+        return [l for l in filtered if q.lower() in l["name"].lower() or q.lower() in l["id"].lower()]
+    return filtered
+
+@app.put("/api/admin/lawyers/{lawyer_id}")
+def update_lawyer(lawyer_id: str, update_data: LawyerUpdateModel):
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer not found")
+    
+    update_dict = update_data.dict(exclude_unset=True)
+    for key, value in update_dict.items():
+        if value is not None:
+            lawyer[key] = value
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": "Updated", "lawyer": lawyer}
