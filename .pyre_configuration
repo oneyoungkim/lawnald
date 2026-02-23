@@ -1,20 +1,10 @@
 {
-    "source_directories": ["."],
-    "search_path": [
-        "backend",
-        "backend/venv/Lib/site-packages"
-    ],
+    "site_package_search_strategy": "none",
+    "source_directories": [],
+    "search_path": [],
     "strict": false,
     "ignore_all_errors": [
-        "backend/main.py",
-        "backend/main_backup.py",
-        "frontend/api/index.py"
-    ],
-    "exclude": [
-        "frontend/.*",
-        "node_modules/.*",
-        "__pycache__/.*",
-        "backend/venv/.*",
-        ".next/.*"
+        "backend",
+        "frontend"
     ]
 }

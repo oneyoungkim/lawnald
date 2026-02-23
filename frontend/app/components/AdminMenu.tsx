@@ -8,6 +8,7 @@ import {
     DocumentTextIcon,
     PencilSquareIcon,
     EnvelopeIcon,
+    ShieldCheckIcon,
     ArrowRightOnRectangleIcon
 } from "@heroicons/react/24/outline";
 
@@ -23,6 +24,7 @@ export default function AdminMenu() {
 
     const menuItems = [
         { label: "대시보드", href: "/admin/dashboard", icon: HomeIcon },
+        { label: "변호사 가입 승인", href: "/admin/lawyer-approvals", icon: ShieldCheckIcon },
         { label: "변호사 관리", href: "/admin/lawyers", icon: UserGroupIcon },
         { label: "승소사례 관리", href: "/admin/cases", icon: DocumentTextIcon },
         { label: "매거진 관리", href: "/admin/magazine", icon: DocumentTextIcon },

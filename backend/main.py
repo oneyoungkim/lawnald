@@ -2383,6 +2383,51 @@ def verify_lawyer(lawyer_id: str):
     save_lawyers_db(LAWYERS_DB)
     return {"message": "변호사가 성공적으로 인증되었습니다.", "lawyer": lawyer}
 
+@app.post("/api/admin/lawyers/{lawyer_id}/reject")
+def reject_lawyer(lawyer_id: str):
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="변호사를 찾을 수 없습니다.")
+    
+    # Remove from DB entirely (rejected signup)
+    LAWYERS_DB.remove(lawyer)
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": "변호사 가입이 반려되었습니다."}
+
+class BatchLawyerIds(BaseModel):
+    lawyer_ids: List[str]
+
+@app.post("/api/admin/lawyers/batch-verify")
+def batch_verify_lawyers(data: BatchLawyerIds):
+    verified_count = 0
+    for lawyer_id in data.lawyer_ids:
+        lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+        if lawyer and lawyer.get("verified") is False:
+            lawyer["verified"] = True
+            lawyer["location"] = lawyer.get("location", "").replace(" (등록 대기)", "")
+            lawyer["matchScore"] = 50
+            lawyer["content_highlights"] = "신규 등록 변호사"
+            verified_count += 1
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{verified_count}명의 변호사가 승인되었습니다.", "count": verified_count}
+
+@app.post("/api/admin/lawyers/batch-reject")
+def batch_reject_lawyers(data: BatchLawyerIds):
+    rejected_count = 0
+    to_remove = []
+    for lawyer_id in data.lawyer_ids:
+        lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+        if lawyer and lawyer.get("verified") is False:
+            to_remove.append(lawyer)
+            rejected_count += 1
+    
+    for lawyer in to_remove:
+        LAWYERS_DB.remove(lawyer)
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{rejected_count}명의 변호사 가입이 반려되었습니다.", "count": rejected_count}
+
 # --- Admin Lawyer Management (List & Edit) ---
 
 @app.get("/api/admin/lawyers")

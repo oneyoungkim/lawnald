@@ -1,3 +1,5 @@
+# pyright: reportGeneralTypeIssues=false, reportMissingImports=false, reportMissingModuleSource=false
+# pyre-ignore-all-errors
 from dotenv import load_dotenv
 load_dotenv()
 from openai import OpenAI

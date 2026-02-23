@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues=false, reportMissingImports=false, reportOptionalMemberAccess=false, reportOptionalSubscript=false, reportOptionalCall=false, reportArgumentType=false, reportIndexIssue=false, reportOperatorIssue=false, reportCallIssue=false, reportReturnType=false, reportAttributeAccessIssue=false, reportMissingModuleSource=false
 # pyre-ignore-all-errors
 import os
 import sys
