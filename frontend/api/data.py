@@ -245,12 +245,80 @@ import os
 _DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(_DIR, "lawyers_db.json")
 
+def _load_from_supabase():
+    """Supabase에서 변호사 데이터를 로드합니다."""
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        sb = get_supabase()
+        if sb is None:
+            return None
+        
+        response = sb.table("lawyers").select("*").execute()
+        if response.data:
+            lawyers = []
+            for row in response.data:
+                lawyer = row.get("data", {})
+                lawyer["id"] = row["id"]
+                lawyer["is_mock"] = row.get("is_mock", False)
+                lawyer["verified"] = row.get("verified", False)
+                lawyers.append(lawyer)
+            print(f"✅ Supabase에서 변호사 {len(lawyers)}명 로드 완료")
+            return lawyers
+        else:
+            print("📭 Supabase 테이블이 비어 있습니다")
+            return []
+    except Exception as e:
+        print(f"⚠️ Supabase 로드 실패: {e}")
+        return None
+
+
+def _save_to_supabase(db):
+    """변호사 데이터를 Supabase에 upsert합니다."""
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        sb = get_supabase()
+        if sb is None:
+            return False
+        
+        from datetime import datetime as _dt
+        now = _dt.now().isoformat()
+        
+        rows = []
+        for lawyer in db:
+            rows.append({
+                "id": lawyer["id"],
+                "data": lawyer,
+                "is_mock": lawyer.get("is_mock", False),
+                "verified": lawyer.get("verified", False),
+                "updated_at": now,
+            })
+        
+        if rows:
+            sb.table("lawyers").upsert(rows, on_conflict="id").execute()
+            print(f"✅ Supabase에 {len(rows)}명 저장/업데이트 완료")
+        return True
+    except Exception as e:
+        print(f"⚠️ Supabase 저장 실패: {e}")
+        return False
+
+
 def load_lawyers_db():
+    # 1. Supabase 시도 (프로덕션)
+    supabase_lawyers = _load_from_supabase()
+    if supabase_lawyers is not None and len(supabase_lawyers) > 0:
+        return supabase_lawyers
+
+    # 2. JSON 파일 폴백 (로컬 개발)
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 print(f"Loading DB from {DB_FILE}")
-                return json.load(f)
+                lawyers = json.load(f)
+                # Supabase가 비어 있었다면 JSON 데이터를 초기 시드로 업로드
+                if supabase_lawyers is not None and len(supabase_lawyers) == 0:
+                    print("📤 JSON → Supabase 초기 시드 업로드 시작...")
+                    _save_to_supabase(lawyers)
+                return lawyers
         except Exception as e:
             print(f"Failed to load DB: {e}. Regenerating.")
     
@@ -338,12 +406,16 @@ def load_lawyers_db():
     return lawyers
 
 def save_lawyers_db(db):
+    # 1. JSON 파일 저장 (로컬 캐시)
     try:
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(db, f, ensure_ascii=False, indent=2)
-        print("DB Saved successfully")
+        print("DB Saved (JSON)")
     except Exception as e:
-        print(f"Error saving DB: {e}")
+        print(f"JSON 저장 실패 (서버리스 환경에서는 정상): {e}")
+    
+    # 2. Supabase에도 저장 (프로덕션용)
+    _save_to_supabase(db)
 
 LAWYERS_DB = load_lawyers_db()
 
