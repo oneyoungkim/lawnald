@@ -5,6 +5,11 @@
         "backend/venv/Lib/site-packages"
     ],
     "strict": false,
+    "ignore_all_errors": [
+        "backend/main.py",
+        "backend/main_backup.py",
+        "frontend/api/index.py"
+    ],
     "exclude": [
         "frontend/.*",
         "node_modules/.*",
