@@ -1,12 +1,22 @@
 
+import { API_BASE } from "@/lib/api";
 import { AcademicCapIcon, BriefcaseIcon } from "@heroicons/react/24/outline";
 import { LawyerDetail } from "../types";
 
 async function getLawyer(id: string): Promise<LawyerDetail | null> {
     try {
-        const res = await fetch(`https://lawnald.com/api/public/lawyers/${id}`, { cache: 'no-store' });
-        if (!res.ok) return null;
-        return res.json();
+        // Try local API first, then production
+        const urls = [
+            `${API_BASE}/api/lawyers/${id}`,
+            `http://127.0.0.1:8000/api/lawyers/${id}`,
+        ];
+        for (const url of urls) {
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                if (res.ok) return res.json();
+            } catch { }
+        }
+        return null;
     } catch (e) {
         return null;
     }
@@ -17,6 +27,10 @@ export default async function LawyerPage({ params }: { params: Promise<{ id: str
     const lawyer = await getLawyer(resolvedParams.id);
 
     if (!lawyer) return null;
+
+    // Check if career is just a license number default
+    const isDefaultCareer = !lawyer.career || lawyer.career.startsWith("변호사 자격증 번호:");
+    const isDefaultEducation = !lawyer.education;
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 animate-in fade-in slide-in-from-bottom-4 duration-700 font-sans">
@@ -37,8 +51,12 @@ export default async function LawyerPage({ params }: { params: Promise<{ id: str
                             <BriefcaseIcon className="w-5 h-5 text-point" />
                         </div>
                         <div>
-                            <p className="font-bold text-lg text-main mb-1">Career</p>
-                            <p className="text-zinc-500 leading-relaxed whitespace-pre-line">{lawyer.career}</p>
+                            <p className="font-bold text-lg text-main mb-1">경력</p>
+                            {isDefaultCareer ? (
+                                <p className="text-zinc-400 italic">대시보드에서 경력을 입력해주세요</p>
+                            ) : (
+                                <p className="text-zinc-500 leading-relaxed whitespace-pre-line">{lawyer.career}</p>
+                            )}
                         </div>
                     </li>
                     <li className="flex gap-4">
@@ -46,8 +64,12 @@ export default async function LawyerPage({ params }: { params: Promise<{ id: str
                             <AcademicCapIcon className="w-5 h-5 text-point" />
                         </div>
                         <div>
-                            <p className="font-bold text-lg text-main mb-1">Education</p>
-                            <p className="text-zinc-500 leading-relaxed whitespace-pre-line">{lawyer.education}</p>
+                            <p className="font-bold text-lg text-main mb-1">학력</p>
+                            {isDefaultEducation ? (
+                                <p className="text-zinc-400 italic">대시보드에서 학력을 입력해주세요</p>
+                            ) : (
+                                <p className="text-zinc-500 leading-relaxed whitespace-pre-line">{lawyer.education}</p>
+                            )}
                         </div>
                     </li>
                 </ul>
@@ -67,17 +89,19 @@ export default async function LawyerPage({ params }: { params: Promise<{ id: str
             </div>
 
             {/* Recent Cases Section */}
-            <div className="col-span-full mt-12">
-                <h3 className="text-2xl font-serif font-bold text-main mb-8">주요 승소 사례</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {lawyer.cases.slice(0, 3).map((item, idx) => (
-                        <div key={idx} className="bg-white p-8 rounded-2xl border border-point/20 hover:border-point/40 transition-colors group shadow-sm hover:shadow-md">
-                            <h4 className="text-lg font-bold text-main mb-4 group-hover:text-point transition-colors line-clamp-1">{item.title}</h4>
-                            <p className="text-zinc-500 text-sm leading-relaxed line-clamp-4">{item.summary}</p>
-                        </div>
-                    ))}
+            {lawyer.cases && lawyer.cases.length > 0 && (
+                <div className="col-span-full mt-12">
+                    <h3 className="text-2xl font-serif font-bold text-main mb-8">주요 승소 사례</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {lawyer.cases.slice(0, 3).map((item, idx) => (
+                            <div key={idx} className="bg-white p-8 rounded-2xl border border-point/20 hover:border-point/40 transition-colors group shadow-sm hover:shadow-md">
+                                <h4 className="text-lg font-bold text-main mb-4 group-hover:text-point transition-colors line-clamp-1">{item.title}</h4>
+                                <p className="text-zinc-500 text-sm leading-relaxed line-clamp-4">{item.summary}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
