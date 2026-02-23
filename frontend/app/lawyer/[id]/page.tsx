@@ -83,12 +83,12 @@ export default async function LawyerPage({ params }: { params: Promise<{ id: str
                 </div>
             )}
 
-            {/* Recent Cases Section */}
-            {lawyer.cases && lawyer.cases.length > 0 && (
+            {/* Recent Cases Section - only show if lawyer has real content_items */}
+            {lawyer.content_items && lawyer.content_items.filter((i: any) => i.type === 'case').length > 0 && (
                 <div className="col-span-full mt-12">
                     <h3 className="text-2xl font-serif font-bold text-main mb-8">주요 승소 사례</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {lawyer.cases.slice(0, 3).map((item, idx) => (
+                        {lawyer.content_items.filter((i: any) => i.type === 'case').slice(0, 3).map((item: any, idx: number) => (
                             <div key={idx} className="bg-white p-8 rounded-2xl border border-point/20 hover:border-point/40 transition-colors group shadow-sm hover:shadow-md">
                                 <h4 className="text-lg font-bold text-main mb-4 group-hover:text-point transition-colors line-clamp-1">{item.title}</h4>
                                 <p className="text-zinc-500 text-sm leading-relaxed line-clamp-4">{item.summary}</p>
