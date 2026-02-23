@@ -184,7 +184,7 @@ export default function CaseWorkspacePage() {
                         <div>
                             <h1 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <SparklesIcon className="w-5 h-5 text-violet-500" />
-                                팀 워크스페이스 · 김도현 변호사
+                                팀 워크스페이스 · 로날드
                             </h1>
                         </div>
                     </div>
@@ -328,12 +328,12 @@ export default function CaseWorkspacePage() {
                                         <span className="text-4xl">🧠</span>
                                     </div>
                                     <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
-                                        김도현 변호사
+                                        로날드
                                     </h2>
                                     <p className="text-sm text-gray-400 leading-relaxed">
-                                        안녕하세요, 같은 팀 동료 김도현입니다.<br />
-                                        사건 자료를 공유하시거나 바로 대화를 시작해주세요.<br />
-                                        <span className="text-violet-500 font-medium">함께 사건을 검토해봅시다.</span>
+                                        10년차 수석 어소시에이트, 로날드입니다.<br />
+                                        사건 자료를 공유하시거나 바로 대화를 시작하십시오.<br />
+                                        <span className="text-violet-500 font-medium">감정은 없고 논리만 있습니다.</span>
                                     </p>
                                 </div>
                             </div>
@@ -344,12 +344,12 @@ export default function CaseWorkspacePage() {
                                         <span className="text-4xl">🧠</span>
                                     </div>
                                     <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2">
-                                        김도현 변호사
+                                        로날드
                                     </h2>
                                     <p className="text-sm text-gray-400 leading-relaxed">
-                                        안녕하세요, 같은 팀 동료 김도현입니다.<br />
-                                        사건 자료를 공유하시거나 바로 대화를 시작해주세요.<br />
-                                        <span className="text-violet-500 font-medium">함께 사건을 검토해봅시다.</span>
+                                        10년차 수석 어소시에이트, 로날드입니다.<br />
+                                        사건 자료를 공유하시거나 바로 대화를 시작하십시오.<br />
+                                        <span className="text-violet-500 font-medium">감정은 없고 논리만 있습니다.</span>
                                     </p>
                                 </div>
                             </div>
@@ -363,7 +363,7 @@ export default function CaseWorkspacePage() {
                                         {msg.role === 'assistant' && (
                                             <div className="flex items-center gap-1.5 mb-2">
                                                 <SparklesIcon className="w-3.5 h-3.5 text-violet-500" />
-                                                <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">김도현 변호사</span>
+                                                <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">로날드</span>
                                             </div>
                                         )}
                                         <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-white' : 'text-gray-800 dark:text-gray-200'
@@ -385,7 +385,7 @@ export default function CaseWorkspacePage() {
                                 <div className="bg-white dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 rounded-2xl rounded-bl-md px-5 py-4 shadow-sm">
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <SparklesIcon className="w-3.5 h-3.5 text-violet-500" />
-                                        <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">김도현 변호사 입력 중</span>
+                                        <span className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">로날드 분석 중</span>
                                     </div>
                                     <div className="flex gap-1.5">
                                         <div className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
