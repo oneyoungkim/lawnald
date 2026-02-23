@@ -38,6 +38,7 @@ interface LawyerProps {
     homepage?: string;
     kakao_id?: string;
     isOnline?: boolean;
+    isFounder?: boolean;
 }
 
 const FALLBACK_IMAGES = [
@@ -185,8 +186,13 @@ export default function LawyerCard({ lawyer, query, index = 0 }: { lawyer: Lawye
                 <div className="flex justify-between items-start mb-6">
                     <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
                         <Link href={`/lawyer/${lawyer.id}`} className="group">
-                            <h2 className="text-2xl md:text-3xl font-semibold text-[#1d1d1f] dark:text-white mb-1 group-hover:opacity-70 transition-opacity">
+                            <h2 className="text-2xl md:text-3xl font-semibold text-[#1d1d1f] dark:text-white mb-1 group-hover:opacity-70 transition-opacity flex items-center gap-2">
                                 {lawyer.name}
+                                {lawyer.isFounder && (
+                                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-violet-600 to-blue-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-violet-500/30 animate-pulse">
+                                        🔥 HYPE
+                                    </span>
+                                )}
                             </h2>
                         </Link>
                         <p className="text-sm text-[#86868b] font-medium flex items-center gap-2">

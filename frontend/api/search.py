@@ -497,7 +497,8 @@ class SearchEngine:
                 "phone": lawyer.get("phone"),
                 "homepage": lawyer.get("homepage"),
                 "kakao_id": lawyer.get("kakao_id"),
-                "isOnline": is_online
+                "isOnline": is_online,
+                "isFounder": lawyer.get("is_founder", False)
             })
 
         # Sort

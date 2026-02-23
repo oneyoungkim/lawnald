@@ -236,7 +236,7 @@ export default function LoginPage() {
 
                 {loginType === "client" && (
                     <div className="text-center mt-8 text-sm text-[#86868b] font-medium">
-                        아직 계정이 없으신가요? <Link href="/signup/client" className="text-[#007aff] hover:underline ml-1">회원가입</Link>
+                        아직 계정이 없으신가요? <Link href="/signup" className="text-[#007aff] hover:underline ml-1">회원가입</Link>
                     </div>
                 )}
 

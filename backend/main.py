@@ -200,6 +200,80 @@ except ImportError:
     from case_workspace import router as workspace_router
 app.include_router(workspace_router)
 
+# ── 변호사 이메일 수집 크롤러 API v2 ──────────────────────
+import threading
+try:
+    from backend.lawyer_crawler import crawler_instance, load_contacts, save_contacts, get_today_count
+except ImportError:
+    from lawyer_crawler import crawler_instance, load_contacts, save_contacts, get_today_count
+
+class CrawlerRunRequest(BaseModel):
+    source: str = "all"  # "koreanbar" | "naver" | "youtube" | "portal" | "all"
+    max_pages: int = 5
+    keyword: str = ""
+    legal_categories: Optional[List[str]] = None  # ["이혼", "전세사기", ...]
+
+@app.post("/api/admin/crawler/run")
+def run_crawler(request: CrawlerRunRequest):
+    """크롤러 실행 (동기 실행 — 소규모 크롤링 기준)"""
+    if crawler_instance.status["running"]:
+        raise HTTPException(status_code=409, detail="크롤러가 이미 실행 중입니다.")
+    try:
+        result = crawler_instance.run(
+            source=request.source,
+            max_pages=request.max_pages,
+            keyword=request.keyword,
+            legal_categories=request.legal_categories,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"크롤링 오류: {str(e)}")
+
+@app.get("/api/admin/crawler/results")
+def get_crawler_results():
+    """수집된 변호사 연락처 목록 조회"""
+    contacts = load_contacts()
+    return contacts
+
+@app.get("/api/admin/crawler/status")
+def get_crawler_status():
+    """크롤러 현재 상태 조회"""
+    return crawler_instance.status
+
+@app.get("/api/admin/crawler/today-count")
+def get_crawler_today_count():
+    """오늘 수집된 변호사 수 (대시보드 위젯용)"""
+    return {"today_count": get_today_count(), "total": len(load_contacts())}
+
+@app.get("/api/admin/crawler/export")
+def export_crawler_csv():
+    """수집 결과 CSV 내보내기"""
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+
+    contacts = load_contacts()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["이름", "소속", "이메일", "수집 출처", "태그", "구독자", "유튜브 채널", "수집일시"])
+    for c in contacts:
+        writer.writerow([
+            c.get("name", ""),
+            c.get("firm", ""),
+            c.get("email", ""),
+            c.get("source", ""),
+            ", ".join(c.get("tags", [])),
+            c.get("subscribers", ""),
+            c.get("youtube_channel", ""),
+            c.get("collected_at", ""),
+        ])
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=lawyer_contacts.csv"}
+    )
+
 print("\n" + "="*50)
 print("STARTUP: Main.py loaded successfully")
 print("="*50 + "\n")
@@ -1614,7 +1688,7 @@ async def signup_lawyer(
     LAWYERS_DB.append(new_lawyer)
     save_lawyers_db(LAWYERS_DB)
 
-    founder_msg = " 🚀 파운딩 멤버로 선정되었습니다! 6개월 무료 + 평생 50% 할인" if new_lawyer.get("is_founder") else ""
+    founder_msg = " 🚀 파운딩 멤버로 선정되었습니다! 3개월 무료 + 평생 50% 할인" if new_lawyer.get("is_founder") else ""
     return {"message": f"Signup successful{founder_msg}", "lawyer_id": new_lawyer["id"], "is_founder": new_lawyer.get("is_founder", False)}
 
 class LawyerLoginRequest(BaseModel):

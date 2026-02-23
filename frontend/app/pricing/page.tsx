@@ -246,14 +246,14 @@ export default function PricingPage() {
                                 </span>
                             </div>
                             <p className="text-sm text-white/50 mt-2">
-                                6개월 무료 체험 + 이후 평생 반값
+                                3개월 무료 체험 + 이후 평생 반값
                             </p>
                         </div>
 
                         <ul className="space-y-4 mb-10 flex-1">
                             {[
                                 "Standard 플랜의 모든 기능",
-                                "6개월 완전 무료 체험",
+                                "3개월 완전 무료 체험",
                                 "체험 종료 후 평생 50% 할인",
                                 "파운딩 멤버 전용 뱃지 표시",
                                 "신규 기능 우선 체험 (Early Access)",

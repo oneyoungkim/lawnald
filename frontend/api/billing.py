@@ -80,7 +80,7 @@ def set_founder_benefits(lawyer: dict) -> dict:
     """
     lawyer["is_founder"] = True
     lawyer["is_subscribed"] = True  # 체험 기간 동안은 구독 상태
-    lawyer["trial_ends_at"] = (datetime.now() + timedelta(days=180)).isoformat()
+    lawyer["trial_ends_at"] = (datetime.now() + timedelta(days=90)).isoformat()
     lawyer["subscription_plan"] = "founder"
     return lawyer
 
@@ -312,7 +312,7 @@ async def activate_founder(req: ActivateRequest):
     save_lawyers_db(LAWYERS_DB)
 
     return {
-        "message": "🚀 파운딩 멤버로 활성화되었습니다! 6개월 무료 체험 + 평생 50% 할인",
+        "message": "🚀 파운딩 멤버로 활성화되었습니다! 3개월 무료 체험 + 평생 50% 할인",
         "is_founder": True,
         "trial_ends_at": lawyer["trial_ends_at"],
     }

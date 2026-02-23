@@ -1602,7 +1602,7 @@ async def signup_lawyer(
     LAWYERS_DB.append(new_lawyer)
     save_lawyers_db(LAWYERS_DB)
 
-    founder_msg = " 🚀 파운딩 멤버로 선정되었습니다! 6개월 무료 + 평생 50% 할인" if new_lawyer.get("is_founder") else ""
+    founder_msg = " 🚀 파운딩 멤버로 선정되었습니다! 3개월 무료 + 평생 50% 할인" if new_lawyer.get("is_founder") else ""
     return {"message": f"Signup successful{founder_msg}", "lawyer_id": new_lawyer["id"], "is_founder": new_lawyer.get("is_founder", False)}
 
 class LawyerLoginRequest(BaseModel):

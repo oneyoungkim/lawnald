@@ -12,7 +12,7 @@ export default function Home() {
         <Link href="/login" className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
           로그인
         </Link>
-        <Link href="/signup/client" className="text-sm bg-[var(--main)] text-white px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity">
+        <Link href="/signup" className="text-sm bg-[var(--main)] text-white px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity">
           회원가입
         </Link>
       </div>
