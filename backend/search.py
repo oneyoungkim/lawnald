@@ -2,16 +2,16 @@
 # pyre-ignore-all-errors
 import os
 import json
-import numpy as np
+import numpy as np  # type: ignore
 from typing import List, Dict
-from openai import OpenAI
-from sklearn.metrics.pairwise import cosine_similarity
-from data import LAWYERS_DB
+from openai import OpenAI  # type: ignore
+from sklearn.metrics.pairwise import cosine_similarity  # type: ignore
+from data import LAWYERS_DB  # type: ignore
 from functools import lru_cache
 try:
-    from backend.chat import presence_manager
+    from backend.chat import presence_manager  # type: ignore
 except ImportError:
-    from chat import presence_manager
+    from chat import presence_manager  # type: ignore
 
 
 # API Key는 환경변수에서 로드 (하드코딩 금지)
@@ -44,7 +44,7 @@ class SearchEngine:
             
         try:
             text = text.replace("\n", " ")
-            return self.client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding
+            return self.client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding  # type: ignore
         except Exception as e:
             print(f"Error generating embedding: {e}")
             return [0.0] * 1536
@@ -123,9 +123,9 @@ class SearchEngine:
                 try:
                     embedding = self._get_embedding(text)
                     current_embeddings.append(embedding)
-                    self.mapping.append({"lawyer_id": lawyer["id"], "type": "case", "index": i})
+                    self.mapping.append({"lawyer_id": lawyer["id"], "type": "case", "index": i})  # type: ignore
                 except Exception as e:
-                    print(f"Embedding failed for case {lawyer['id']}: {e}")
+                    print(f"Embedding failed for case {lawyer['id']}: {e}")  # type: ignore
 
             # 2. Embed Content Items (Verified only)
             lawyer_content_items = lawyer.get("content_items") or []
@@ -151,7 +151,7 @@ class SearchEngine:
             # 3. Save to cache
             with open(CACHE_FILE, "w", encoding="utf-8") as f:
                 json.dump({
-                    "embeddings": self.corpus_embeddings.tolist(),
+                    "embeddings": self.corpus_embeddings.tolist(),  # type: ignore
                     "mapping": self.mapping
                 }, f)
             print("Embeddings saved to cache.")
@@ -213,7 +213,7 @@ class SearchEngine:
         """
         
         try:
-            response = self.client.chat.completions.create(
+            response = self.client.chat.completions.create(  # type: ignore
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -281,7 +281,7 @@ class SearchEngine:
         except Exception as e:
             print(f"Failed to index new case: {e}")
 
-    def search(self, query: str, top_k: int = 10, location: str = None, gender: str = None, education: str = None, career: str = None) -> Dict:
+    def search(self, query: str, top_k: int = 10, location: str = None, gender: str = None, education: str = None, career: str = None) -> Dict:  # type: ignore
         if len(self.corpus_embeddings) == 0:
             return {"lawyers": [], "analysis": "데이터가 없습니다."}
             
@@ -330,12 +330,12 @@ class SearchEngine:
             if item_type == "case":
                 if score > stats["max_sim"]:
                     stats["max_sim"] = score
-                    stats["best_case_idx"] = item_index
+                    stats["best_case_idx"] = item_index  # type: ignore
             elif item_type == "content":
                 # Check if this content is better than previous best content
                 if score > stats["best_content_score"]:
                     stats["best_content_score"] = score
-                    stats["best_content_idx"] = item_index
+                    stats["best_content_idx"] = item_index  # type: ignore
                 
                 # Also contribute to max_sim if it's really good?
                 # Let's say content can be the BEST match overall.
@@ -393,9 +393,9 @@ class SearchEngine:
             # Simple keyword matching for topic tags vs primary area
             # e.g. primary="가사" -> matches "가사법", "이혼"
             target_keywords = [primary_area]
-            if primary_area == "가사": target_keywords.extend(["이혼", "상속", "가사"])
-            elif primary_area == "형사": target_keywords.extend(["성범죄", "교통", "형사"])
-            elif primary_area == "부동산": target_keywords.extend(["임대차", "건설", "부동산"])
+            if primary_area == "가사": target_keywords.extend(["이혼", "상속", "가사"])  # type: ignore
+            elif primary_area == "형사": target_keywords.extend(["성범죄", "교통", "형사"])  # type: ignore
+            elif primary_area == "부동산": target_keywords.extend(["임대차", "건설", "부동산"])  # type: ignore
             
             lawyer_content_items = lawyer.get("content_items") or []
             for item in lawyer_content_items:
@@ -412,9 +412,9 @@ class SearchEngine:
                 
                 if not is_relevant: continue
                 
-                valid_content_count += 1
+                valid_content_count += 1  # type: ignore
                 itype = item.get("type")
-                if itype == "book": raw_content_score += 5
+                if itype == "book": raw_content_score += 5  # type: ignore
                 elif itype == "lecture": raw_content_score += 3
                 elif itype == "column": raw_content_score += 2
                 elif itype == "blog": raw_content_score += 1
@@ -423,11 +423,11 @@ class SearchEngine:
             # Saturation: log(1 + x) / log(10) -> log10(1+x)
             # e.g. score 9 -> log10(10) = 1.0
             # score 0 -> 0
-            content_score = np.log10(1 + raw_content_score)
+            content_score = np.log10(1 + raw_content_score)  # type: ignore
             content_score = min(content_score, 1.0) # Cap at 1.0
             
             # --- Final Score Calculation ---
-            sim_stats = lawyer_scores[l_id]
+            sim_stats = lawyer_scores[l_id]  # type: ignore
             # Base similarity (0.9 Max + 0.1 Avg)
             sim_score = (sim_stats["max_sim"] * 0.9) + (min(sim_stats["sum_sim"], 3.0)/3.0 * 0.1)
             
@@ -512,7 +512,7 @@ class SearchEngine:
         # We pick top 10, but ensure at least 5 are related if possible.
         
         top_results = []
-        related_pool = [c for c in final_candidates if c["practiceScore"] > 0]
+        related_pool = [c for c in final_candidates if c["practiceScore"] > 0]  # type: ignore
         unrelated_pool = [c for c in final_candidates if c["practiceScore"] == 0]
         
         # If we have enough related, prioritize them
@@ -524,7 +524,7 @@ class SearchEngine:
              # Let's just trust the score sort for now, as the penalty is strong.
              pass
              
-        results = final_candidates[:top_k]
+        results = final_candidates[:top_k]  # type: ignore
 
         # Prepare Analysis Summary Text from Router
         key_issues_str = ", ".join(analysis.get('key_issues', [])[:3])

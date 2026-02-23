@@ -274,44 +274,128 @@ export default function AdminDashboard() {
 function AdminStats() {
     const [stats, setStats] = useState<any>(null);
     const [crawlerStats, setCrawlerStats] = useState<any>(null);
+    const [selectedDate, setSelectedDate] = useState<string>(() => {
+        const now = new Date();
+        return now.toISOString().split("T")[0];
+    });
+    const [availableDates, setAvailableDates] = useState<string[]>([]);
+
+    const today = new Date().toISOString().split("T")[0];
+    const isToday = selectedDate === today;
+
+    const fetchStats = (date: string) => {
+        fetch(`${API_BASE}/api/admin/stats?date=${date}`)
+            .then(res => res.json())
+            .then(data => {
+                setStats(data);
+                if (data.available_dates) {
+                    setAvailableDates(data.available_dates);
+                }
+            })
+            .catch(err => console.error(err));
+    };
 
     useEffect(() => {
-        fetch(`${API_BASE}/api/admin/stats`)
-            .then(res => res.json())
-            .then(data => setStats(data))
-            .catch(err => console.error(err));
+        fetchStats(selectedDate);
         fetch(`${API_BASE}/api/admin/crawler/today-count`)
             .then(res => res.json())
             .then(data => setCrawlerStats(data))
             .catch(err => console.error(err));
-    }, []);
+    }, [selectedDate]);
+
+    const goDay = (offset: number) => {
+        const d = new Date(selectedDate + "T00:00:00");
+        d.setDate(d.getDate() + offset);
+        const newDate = d.toISOString().split("T")[0];
+        if (newDate <= today) {
+            setSelectedDate(newDate);
+        }
+    };
+
+    const formatDateKR = (dateStr: string) => {
+        const d = new Date(dateStr + "T00:00:00");
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
+        const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+        const weekday = weekdays[d.getDay()];
+        return `${month}월 ${day}일 (${weekday})`;
+    };
 
     if (!stats) return <div className="h-32 bg-gray-100 animate-pulse rounded-2xl mb-8"></div>;
 
     const items = [
-        { label: "오늘 상담수", value: stats.today_consultations, unit: "건", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-        { label: "오늘 방문자", value: stats.visitors ? stats.visitors.toLocaleString() : 0, unit: "명", color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
+        { label: isToday ? "오늘 상담수" : "상담수", value: stats.today_consultations, unit: "건", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+        { label: isToday ? "오늘 방문자" : "방문자", value: stats.visitors ? stats.visitors.toLocaleString() : 0, unit: "명", color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
         { label: "페이지 뷰", value: stats.page_views ? stats.page_views.toLocaleString() : 0, unit: "회", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20" },
         { label: "평균 체류시간", value: stats.avg_duration, unit: "", color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-900/20" },
-        { label: "오늘 수집 파트너", value: crawlerStats?.today_count ?? 0, unit: "명", color: "text-indigo-500", bg: "bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20", extra: crawlerStats ? `총 ${crawlerStats.total}명` : "" },
+        { label: isToday ? "오늘 수집 파트너" : "수집 파트너", value: crawlerStats?.today_count ?? 0, unit: "명", color: "text-indigo-500", bg: "bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20", extra: crawlerStats ? `총 ${crawlerStats.total}명` : "" },
     ];
 
     return (
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {items.map((item, idx) => (
-                <div key={idx} className="bg-white dark:bg-[#1c1c1e] p-6 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-4">
-                    <div className={`p-3 rounded-2xl ${item.bg}`}>
-                        <div className={`w-6 h-6 ${item.color} font-bold text-center`}>●</div>
+        <section>
+            {/* Date Navigation */}
+            <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => goDay(-1)}
+                        className="p-2 rounded-xl bg-white dark:bg-[#1c1c1e] shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors border border-gray-100 dark:border-zinc-700"
+                        title="이전 날짜"
+                    >
+                        <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div className="px-4 py-2 bg-white dark:bg-[#1c1c1e] rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-zinc-700 min-w-[160px] text-center">
+                        <span className="text-sm font-semibold text-[#1d1d1f] dark:text-white">
+                            {formatDateKR(selectedDate)}
+                        </span>
+                        {!isToday && (
+                            <span className="text-[10px] text-orange-500 ml-2 font-medium">과거</span>
+                        )}
                     </div>
-                    <div>
-                        <p className="text-sm text-[#86868b] font-medium mb-1">{item.label}</p>
-                        <p className="text-2xl font-bold text-[#1d1d1f] dark:text-white">
-                            {item.value}<span className="text-sm font-normal text-[#86868b] ml-1">{item.unit}</span>
-                        </p>
-                        {(item as any).extra && <p className="text-[10px] text-[#86868b] mt-0.5">{(item as any).extra}</p>}
-                    </div>
+                    <button
+                        onClick={() => goDay(1)}
+                        disabled={isToday}
+                        className={`p-2 rounded-xl bg-white dark:bg-[#1c1c1e] shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-zinc-700 transition-colors ${isToday ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-50 dark:hover:bg-zinc-800"}`}
+                        title="다음 날짜"
+                    >
+                        <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
                 </div>
-            ))}
+                <div className="flex items-center gap-2">
+                    {!isToday && (
+                        <button
+                            onClick={() => setSelectedDate(today)}
+                            className="px-3 py-1.5 text-xs font-semibold bg-main text-white rounded-lg hover:bg-main/90 transition-colors"
+                        >
+                            오늘로
+                        </button>
+                    )}
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        max={today}
+                        onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                        className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-white cursor-pointer"
+                    />
+                </div>
+            </div>
+
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                {items.map((item, idx) => (
+                    <div key={idx} className="bg-white dark:bg-[#1c1c1e] p-6 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-4">
+                        <div className={`p-3 rounded-2xl ${item.bg}`}>
+                            <div className={`w-6 h-6 ${item.color} font-bold text-center`}>●</div>
+                        </div>
+                        <div>
+                            <p className="text-sm text-[#86868b] font-medium mb-1">{item.label}</p>
+                            <p className="text-2xl font-bold text-[#1d1d1f] dark:text-white">
+                                {item.value}<span className="text-sm font-normal text-[#86868b] ml-1">{item.unit}</span>
+                            </p>
+                            {(item as any).extra && <p className="text-[10px] text-[#86868b] mt-0.5">{(item as any).extra}</p>}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </section>
     );
 }

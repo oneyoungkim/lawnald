@@ -71,6 +71,18 @@ function LawyerDashboardContent() {
             const parsedLawyer = JSON.parse(stored);
             setLawyer(parsedLawyer);
 
+            // 서버에서 최신 변호사 정보를 가져와 verified 등 상태를 갱신
+            fetch(`${API_BASE}/api/lawyers/${parsedLawyer.id}`)
+                .then(res => res.ok ? res.json() : null)
+                .then(serverData => {
+                    if (serverData) {
+                        const updatedLawyer = { ...parsedLawyer, ...serverData };
+                        setLawyer(updatedLawyer);
+                        localStorage.setItem("lawyer_user", JSON.stringify(updatedLawyer));
+                    }
+                })
+                .catch(() => {}); // 실패해도 기존 데이터로 진행
+
             Promise.all([
                 fetch(`${API_BASE}/api/lawyers/${parsedLawyer.id}/leads`).then(res => res.json()),
                 fetch(`${API_BASE}/api/consultations?lawyer_id=${parsedLawyer.id}`).then(res => res.json()),

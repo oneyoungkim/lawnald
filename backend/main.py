@@ -3,29 +3,48 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Query, UploadFile, File, HTTPException, Form, Body
-from pydantic import BaseModel
+# Ensure the backend directory is in sys.path for bare imports
+# (needed when running as `python -m uvicorn backend.main:app` from project root)
+import sys, os as _os
+_backend_dir = _os.path.dirname(_os.path.abspath(__file__))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+from fastapi import FastAPI, Query, UploadFile, File, HTTPException, Form, Body  # type: ignore
+from pydantic import BaseModel  # type: ignore
 from typing import List, Optional, Dict, Any
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from search import search_engine
-from data import LAWYERS_DB, save_lawyers_db
-import image_utils
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore
+from fastapi.staticfiles import StaticFiles  # type: ignore
+from search import search_engine  # type: ignore
+from data import LAWYERS_DB, save_lawyers_db  # type: ignore
+# --- is_mock 마이그레이션: 서버 시작 시 in-memory DB에 플래그 보장 ---
+import re as _re
+_mock_migrated = False
+for _l in LAWYERS_DB:
+    if "is_mock" not in _l:
+        _l["is_mock"] = bool(_re.match(r'^lawyer-\d+$', _l.get("id", "")))
+        if _l["is_mock"] and "verified" not in _l:
+            _l["verified"] = True
+        _mock_migrated = True
+if _mock_migrated:
+    save_lawyers_db(LAWYERS_DB)
+    print(f"✅ main.py: is_mock 마이그레이션 완료 (mock: {sum(1 for x in LAWYERS_DB if x.get('is_mock'))}, real: {sum(1 for x in LAWYERS_DB if not x.get('is_mock', False))})")
+import image_utils  # type: ignore
 import os
 import json
-import seo 
+import seo  # type: ignore
 try:
-    from backend import seo_helper
+    from backend import seo_helper  # type: ignore
 except ImportError:
-    import seo_helper 
+    import seo_helper  # type: ignore
 try:
-    from backend.compliance import compliance_engine
+    from backend.compliance import compliance_engine  # type: ignore
 except ImportError:
-    from compliance import compliance_engine
+    from compliance import compliance_engine  # type: ignore
 try:
-    from backend import consultation
+    from backend import consultation  # type: ignore
 except ImportError:
-    import consultation
+    import consultation  # type: ignore
 import hashlib 
 
 from datetime import datetime, timedelta
@@ -47,97 +66,177 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Visitor Tracking ---
+# --- Visitor Tracking (File-Persistent Daily Stats) ---
 import time as _time
 
-# In-memory visitor tracking (resets on server restart)
+STATS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stats_history.json")
+
+def _load_stats_history() -> Dict[str, Any]:
+    """Load all daily stats from file."""
+    try:
+        if os.path.exists(STATS_FILE):
+            with open(STATS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"⚠️ stats_history.json 로드 실패: {e}")
+    return {}
+
+def _save_stats_history(history: Dict[str, Any]):
+    """Save all daily stats to file."""
+    try:
+        with open(STATS_FILE, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ stats_history.json 저장 실패: {e}")
+
+def _flush_today_to_file():
+    """Persist current in-memory stats to the history file."""
+    history = _load_stats_history()
+    today = _visitor_data["date"]
+    history[today] = {
+        "visitors": len(_visitor_data["unique_ips"]),
+        "unique_ips_list": list(_visitor_data["unique_ips"]),
+        "page_views": _visitor_data["page_views"],
+        "total_duration": _visitor_data["total_duration"],
+        "session_count": _visitor_data["session_count"],
+    }
+    _save_stats_history(history)
+
+# In-memory visitor tracking — restored from file on startup
+_today_str = datetime.now().strftime("%Y-%m-%d")
+_saved_history = _load_stats_history()
+_today_saved = _saved_history.get(_today_str, {})
+
 _visitor_data: Dict[str, Any] = {
-    "date": datetime.now().strftime("%Y-%m-%d"),
-    "unique_ips": set(),
-    "page_views": 0,
-    "session_starts": {},  # ip -> first_seen timestamp
-    "total_duration": 0.0,
-    "session_count": 0,
+    "date": _today_str,
+    "unique_ips": set(_today_saved.get("unique_ips_list", [])),
+    "page_views": _today_saved.get("page_views", 0),
+    "session_starts": {},
+    "total_duration": _today_saved.get("total_duration", 0.0),
+    "session_count": _today_saved.get("session_count", 0),
 }
+print(f"📊 통계 복원: {_today_str} — 방문자 {len(_visitor_data['unique_ips'])}명, 페이지뷰 {_visitor_data['page_views']}회")
+
+_flush_counter = 0  # Throttle file writes
 
 def _reset_if_new_day():
+    global _flush_counter
     today = datetime.now().strftime("%Y-%m-%d")
     if _visitor_data["date"] != today:
+        # Archive yesterday's data to file
+        _flush_today_to_file()
+        # Reset for new day
         _visitor_data["date"] = today
         _visitor_data["unique_ips"] = set()
         _visitor_data["page_views"] = 0
         _visitor_data["session_starts"] = {}
         _visitor_data["total_duration"] = 0.0
         _visitor_data["session_count"] = 0
+        _flush_counter = 0
+        print(f"📊 새 날짜 시작: {today}")
 
 @app.middleware("http")
 async def visitor_tracking_middleware(request, call_next):
+    global _flush_counter
     _reset_if_new_day()
     
-    # Only track actual page/API requests, skip static files
     path = request.url.path
     if not path.startswith(("/_next", "/static", "/favicon", "/og-")):
         client_ip = request.client.host if request.client else "unknown"
         _visitor_data["unique_ips"].add(client_ip)
         _visitor_data["page_views"] += 1
         
-        # Track session duration
         now = _time.time()
         if client_ip not in _visitor_data["session_starts"]:
             _visitor_data["session_starts"][client_ip] = now
         else:
             elapsed = now - _visitor_data["session_starts"][client_ip]
-            if elapsed > 1800:  # 30min = new session
+            if elapsed > 1800:
                 _visitor_data["total_duration"] += min(elapsed, 1800)
                 _visitor_data["session_count"] += 1
                 _visitor_data["session_starts"][client_ip] = now
+        
+        # Flush to file every 50 requests
+        _flush_counter += 1  # type: ignore
+        if _flush_counter >= 50:
+            _flush_today_to_file()
+            _flush_counter = 0
     
     response = await call_next(request)
     return response
 
+def _calc_avg_duration(total_dur: float, sess_count: int, visitor_count: int) -> str:
+    if sess_count > 0:
+        avg_sec = total_dur / sess_count
+        mins = int(avg_sec // 60)
+        secs = int(avg_sec % 60)
+        return f"{mins}분 {secs}초"
+    elif visitor_count > 0:
+        return "계산 중..."
+    return "0분 0초"
+
 @app.get("/api/admin/stats")
-def get_admin_stats():
+def get_admin_stats(date: Optional[str] = None):
     _reset_if_new_day()
+    # Flush current data so file is up-to-date
+    _flush_today_to_file()
     
     today_str = datetime.now().strftime("%Y-%m-%d")
+    query_date = date or today_str
+    is_today = (query_date == today_str)
     
-    # Count today's consultations
-    today_consultations = 0
+    history = _load_stats_history()
+    available_dates = sorted(history.keys(), reverse=True)
+    
+    if is_today:
+        visitors = len(_visitor_data["unique_ips"])
+        page_views = _visitor_data["page_views"]
+        avg_duration = _calc_avg_duration(
+            _visitor_data["total_duration"],
+            _visitor_data["session_count"],
+            visitors
+        )
+    else:
+        day_data = history.get(query_date, {})
+        visitors = day_data.get("visitors", 0)
+        page_views = day_data.get("page_views", 0)
+        avg_duration = _calc_avg_duration(
+            day_data.get("total_duration", 0),
+            day_data.get("session_count", 0),
+            visitors
+        )
+    
+    # Count consultations for the queried date
+    consultations = 0
     try:
         for c in CONSULTATIONS_DB:
             created = c.get("created_at", "")
-            if isinstance(created, str) and created.startswith(today_str):
-                today_consultations += 1
+            if isinstance(created, str) and created.startswith(query_date):
+                consultations += 1  # type: ignore
     except (NameError, Exception):
         pass
     
-    # Calculate average duration
-    if _visitor_data["session_count"] > 0:
-        avg_sec = _visitor_data["total_duration"] / _visitor_data["session_count"]
-        mins = int(avg_sec // 60)
-        secs = int(avg_sec % 60)
-        avg_duration = f"{mins}분 {secs}초"
-    else:
-        # Estimate from unique visitors if no completed sessions yet
-        visitors = len(_visitor_data["unique_ips"])
-        if visitors > 0:
-            avg_duration = "계산 중..."
-        else:
-            avg_duration = "0분 0초"
-    
     return {
-        "today_consultations": today_consultations,
-        "visitors": len(_visitor_data["unique_ips"]),
-        "page_views": _visitor_data["page_views"],
+        "date": query_date,
+        "today_consultations": consultations,
+        "visitors": visitors,
+        "page_views": page_views,
         "avg_duration": avg_duration,
+        "available_dates": available_dates[:30],  # Last 30 days max  # type: ignore
     }
+
+@app.get("/api/admin/stats/dates")
+def get_stats_dates():
+    """사용 가능한 통계 날짜 목록"""
+    history = _load_stats_history()
+    return {"dates": sorted(history.keys(), reverse=True)}
 
 # --- WebSocket Setup (Declared early) ---
 try:
-    from backend.chat import chat_manager
+    from backend.chat import chat_manager  # type: ignore
 except ImportError:
-    from chat import chat_manager
-from fastapi import WebSocket, WebSocketDisconnect
+    from chat import chat_manager  # type: ignore
+from fastapi import WebSocket, WebSocketDisconnect  # type: ignore
 
 @app.websocket("/ws/chat/{lawyer_id}/{client_id}/{role}")
 async def websocket_endpoint(websocket: WebSocket, lawyer_id: str, client_id: str, role: str):
@@ -159,7 +258,7 @@ async def get_chat_history(lawyer_id: str, client_id: str):
 async def get_lawyer_chats(lawyer_id: str):
     return chat_manager.get_lawyer_chats(lawyer_id)
 
-from routers.crawler import parse_naver_blog_url, get_blog_text, rewrite_with_llm, generate_cover_image
+from routers.crawler import parse_naver_blog_url, get_blog_text, rewrite_with_llm, generate_cover_image  # type: ignore
 # NOTE: crawler.router NOT included to avoid stale async endpoint conflict
 
 # 블로그 불러오기 엔드포인트
@@ -172,7 +271,7 @@ def blog_import_endpoint(request: BlogImportRequest):
     try:
         blog_id, log_no = parse_naver_blog_url(request.url)
         if not blog_id or not log_no:
-            from fastapi.responses import JSONResponse
+            from fastapi.responses import JSONResponse  # type: ignore
             return JSONResponse(status_code=400, content={"detail": "잘못된 네이버 블로그 URL 형식입니다. 개별 포스트 URL을 입력해주세요."})
         
         # ── 중복 URL 체크 (비용 낭비 방지: LLM/DALL-E 호출 전에 확인) ──
@@ -181,14 +280,14 @@ def blog_import_endpoint(request: BlogImportRequest):
             for item in lawyer.get("content_items", []):
                 existing_url = item.get("original_url", "")
                 if existing_url and (canonical_url in existing_url or existing_url in canonical_url or existing_url == request.url):
-                    from fastapi.responses import JSONResponse
+                    from fastapi.responses import JSONResponse  # type: ignore
                     return JSONResponse(status_code=409, content={"detail": f"이미 등록된 블로그 글입니다. (등록일: {item.get('date', '알 수 없음')})"})
         
         print(f"[BlogImport] Crawling: {blog_id}/{log_no}")
         original_title, original_text = get_blog_text(blog_id, log_no)
         
         if not original_text or len(original_text.strip()) < 50:
-            from fastapi.responses import JSONResponse
+            from fastapi.responses import JSONResponse  # type: ignore
             return JSONResponse(status_code=400, content={"detail": "블로그 글 내용을 추출할 수 없습니다. 비공개 글이거나 내용이 너무 짧습니다."})
         
         print(f"[BlogImport] Got {len(original_text)} chars. LLM rewriting with SEO...")
@@ -231,7 +330,7 @@ def blog_import_endpoint(request: BlogImportRequest):
     except Exception as e:
         print(f"[BlogImport] ❌ ERROR: {e}")
         tb.print_exc()
-        from fastapi.responses import JSONResponse
+        from fastapi.responses import JSONResponse  # type: ignore
         return JSONResponse(status_code=500, content={"detail": f"블로그 불러오기 중 오류: {str(e)}"})
 
 # ── 온디맨드 AI 썸네일 생성 (변호사가 버튼 클릭 시에만 호출) ──
@@ -243,61 +342,61 @@ def generate_thumbnail_endpoint(request: ThumbnailRequest):
     """변호사가 [✨ AI 썸네일 생성하기] 버튼을 클릭했을 때만 호출됩니다."""
     try:
         if not request.content or len(request.content.strip()) < 30:
-            from fastapi.responses import JSONResponse
+            from fastapi.responses import JSONResponse  # type: ignore
             return JSONResponse(status_code=400, content={"detail": "썸네일 생성을 위해 최소 30자 이상의 본문이 필요합니다."})
         
         print(f"[Thumbnail] 🎨 Generating on-demand thumbnail ({len(request.content)} chars)...")
-        image_url = generate_cover_image(request.content[:1000])
+        image_url = generate_cover_image(request.content[:1000])  # type: ignore
         print(f"[Thumbnail] ✅ Done: {image_url}")
         
         return {"image_url": image_url}
     except Exception as e:
         print(f"[Thumbnail] ❌ ERROR: {e}")
-        from fastapi.responses import JSONResponse
+        from fastapi.responses import JSONResponse  # type: ignore
         return JSONResponse(status_code=500, content={"detail": f"이미지 생성 실패: {str(e)}"})
 
 try:
-    from backend.billing import router as billing_router
+    from backend.billing import router as billing_router  # type: ignore
 except ImportError:
-    from billing import router as billing_router
+    from billing import router as billing_router  # type: ignore
 app.include_router(billing_router)
 
 try:
-    from backend.admin_blog import router as admin_blog_router
+    from backend.admin_blog import router as admin_blog_router  # type: ignore
 except ImportError:
-    from admin_blog import router as admin_blog_router
+    from admin_blog import router as admin_blog_router  # type: ignore
 app.include_router(admin_blog_router)
 
 try:
-    from backend.push_notifications import router as push_router
+    from backend.push_notifications import router as push_router  # type: ignore
 except ImportError:
-    from push_notifications import router as push_router
+    from push_notifications import router as push_router  # type: ignore
 app.include_router(push_router)
 
 try:
-    from backend.document_generator import router as docgen_router
+    from backend.document_generator import router as docgen_router  # type: ignore
 except ImportError:
-    from document_generator import router as docgen_router
+    from document_generator import router as docgen_router  # type: ignore
 app.include_router(docgen_router)
 
 try:
-    from backend.evidence_processor import router as evidence_router
+    from backend.evidence_processor import router as evidence_router  # type: ignore
 except ImportError:
-    from evidence_processor import router as evidence_router
+    from evidence_processor import router as evidence_router  # type: ignore
 app.include_router(evidence_router)
 
 try:
-    from backend.case_workspace import router as workspace_router
+    from backend.case_workspace import router as workspace_router  # type: ignore
 except ImportError:
-    from case_workspace import router as workspace_router
+    from case_workspace import router as workspace_router  # type: ignore
 app.include_router(workspace_router)
 
 # ── 변호사 이메일 수집 크롤러 API v2 ──────────────────────
 import threading
 try:
-    from backend.lawyer_crawler import crawler_instance, load_contacts, save_contacts, get_today_count
+    from backend.lawyer_crawler import crawler_instance, load_contacts, save_contacts, get_today_count  # type: ignore
 except ImportError:
-    from lawyer_crawler import crawler_instance, load_contacts, save_contacts, get_today_count
+    from lawyer_crawler import crawler_instance, load_contacts, save_contacts, get_today_count  # type: ignore
 
 class CrawlerRunRequest(BaseModel):
     source: str = "all"  # "koreanbar" | "naver" | "youtube" | "portal" | "all"
@@ -342,7 +441,7 @@ def export_crawler_csv():
     """수집 결과 CSV 내보내기"""
     import csv
     import io
-    from fastapi.responses import StreamingResponse
+    from fastapi.responses import StreamingResponse  # type: ignore
 
     contacts = load_contacts()
     output = io.StringIO()
@@ -379,7 +478,7 @@ print("="*50 + "\n")
 # Ensure directories exist (Workaround for uvicorn CWD issues)
 try:
     import sys
-    import backend.case_parser_v2 as case_parser_module
+    import backend.case_parser_v2 as case_parser_module  # type: ignore
     with open("backend/debug_env.txt", "w", encoding="utf-8") as f:
         f.write(f"sys.executable: {sys.executable}\n")
         f.write(f"sys.path: {sys.path}\n")
@@ -615,7 +714,7 @@ def get_client_stories(client_id: str):
 
 @app.get("/api/client/{client_id}/chats")
 def get_client_chats(client_id: str):
-    from chat import chat_manager
+    from chat import chat_manager  # type: ignore
     chat_manager.load_chats()
     chats = []
     for session in chat_manager.sessions.values():
@@ -632,7 +731,7 @@ def get_client_chats(client_id: str):
 
 @app.get("/api/lawyers/online")
 def get_online_lawyers():
-    from chat import presence_manager
+    from chat import presence_manager  # type: ignore
     online = []
     for lawyer in LAWYERS_DB:
         status = presence_manager.get_status(lawyer["id"])
@@ -649,7 +748,7 @@ def get_online_lawyers():
     return online
 
 # --- SEO Analysis Endpoints ---
-from seo_helper import seo_helper
+from seo_helper import seo_helper  # type: ignore
 
 class SEOAnalysisRequest(BaseModel):
     title: str
@@ -691,8 +790,8 @@ def get_all_magazine_content():
                 
                 all_content.append({
                     "id": item.get("id"),
-                    "lawyer_id": lawyer["id"],
-                    "lawyer_name": lawyer["name"],
+                    "lawyer_id": lawyer["id"],  # type: ignore
+                    "lawyer_name": lawyer["name"],  # type: ignore
                     "type": item.get("type", "blog"),
                     "title": item.get("title", "Untitled"),
                     "date": item.get("date", "Unknown"),
@@ -781,7 +880,7 @@ def create_magazine_post(request: MagazineCreateRequest):
         "view_count": 0,
         "cover_image": request.cover_image or "/images/pattern_1.jpg", 
         "original_url": request.original_url or "",
-        "summary": request.content[:200] + "...",
+        "summary": request.content[:200] + "...",  # type: ignore
         "slug": request.title.replace(" ", "-"),
         "verified": True,
         "seo": {
@@ -790,29 +889,29 @@ def create_magazine_post(request: MagazineCreateRequest):
             "schema": seo_helper.generate_schema({
                 "title": request.title, 
                 "date": datetime.now().strftime("%Y-%m-%d"),
-                "lawyer_name": lawyer["name"]
+                "lawyer_name": lawyer["name"]  # type: ignore
             })
         }
     }
     
-    if "content_items" not in lawyer:
-        lawyer["content_items"] = []
+    if "content_items" not in lawyer:  # type: ignore
+        lawyer["content_items"] = []  # type: ignore
         
-    lawyer["content_items"].insert(0, new_item)
+    lawyer["content_items"].insert(0, new_item)  # type: ignore
     save_lawyers_db(LAWYERS_DB)
     
     # 검색 인덱스에 즉시 추가 (변호사 추천 알고리즘 점수 반영)
     try:
-        from search import search_engine
+        from search import search_engine  # type: ignore
         text = f"{new_item['title']} {new_item['summary']}"
         embedding = search_engine._get_embedding(text)
-        import numpy as np
+        import numpy as np  # type: ignore
         if len(search_engine.corpus_embeddings) > 0:
             search_engine.corpus_embeddings = np.vstack([search_engine.corpus_embeddings, embedding])
         else:
             search_engine.corpus_embeddings = np.array([embedding])
-        content_idx = len(lawyer["content_items"]) - 1
-        search_engine.mapping.append({"lawyer_id": lawyer["id"], "type": "content", "index": 0})
+        content_idx = len(lawyer["content_items"]) - 1  # type: ignore
+        search_engine.mapping.append({"lawyer_id": lawyer["id"], "type": "content", "index": 0})  # type: ignore
         print(f"✅ 블로그/매거진 콘텐츠가 추천 알고리즘 인덱스에 추가됨: {new_item['title']}")
     except Exception as e:
         print(f"⚠️ 인덱스 업데이트 실패 (추후 재시작 시 반영): {e}")
@@ -845,7 +944,7 @@ def get_monthly_stats():
         case_stats[tag] = case_stats.get(tag, 0) + 1
     
     # Sort and take top 5
-    top_case_categories = sorted(case_stats.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_case_categories = sorted(case_stats.items(), key=lambda x: x[1], reverse=True)[:5]  # type: ignore
     
     # Calculate Growth
     case_growth = {} # tag -> growth_rate
@@ -867,7 +966,7 @@ def get_monthly_stats():
         area = c.get("primary_area", "기타")
         consult_stats[area] = consult_stats.get(area, 0) + 1
         
-    top_consult_categories = sorted(consult_stats.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_consult_categories = sorted(consult_stats.items(), key=lambda x: x[1], reverse=True)[:5]  # type: ignore
 
     consult_growth = {}
     for area, count in top_consult_categories:
@@ -911,8 +1010,8 @@ def get_monthly_stats():
             "category": cat,
             "case_count": case_count,
             "lawyer_count": lawyer_count,
-            "ratio": round(ratio, 2),
-            "growth": round(growth, 1)
+            "ratio": round(ratio, 2),  # type: ignore
+            "growth": round(growth, 1)  # type: ignore
         })
         
     # Sort by ratio descending
@@ -925,11 +1024,11 @@ def get_monthly_stats():
         "consultations": {
             "top_categories": [{"name": k, "value": v, "growth": consult_growth[k]} for k, v in top_consult_categories]
         },
-        "demand": demand_stats[:10] # Top 10
+        "demand": demand_stats[:10] # Top 10  # type: ignore
     }
 
-from pdf_utils import extract_text_from_pdf
-from pii_utils import mask_pii
+from pdf_utils import extract_text_from_pdf  # type: ignore
+from pii_utils import mask_pii  # type: ignore
 import shutil
 
 # ... existing imports ...
@@ -974,7 +1073,7 @@ async def upload_case_pdf(lawyer_id: str = Form(...), file: UploadFile = File(..
     masked_text = mask_pii(text)
     
     # 4. Generate Draft with LLM
-    from consultation import analyze_judgment
+    from consultation import analyze_judgment  # type: ignore
     
     # We pass the ORIGINAL text to the LLM so it can identify names (e.g. "Kim Soo-yeon") 
     # and anonymize them stylistically (e.g. "Kim C") as per the prompt instructions.
@@ -1060,7 +1159,7 @@ def create_case_draft(request: CaseSummaryRequest):
         "type": "case",
         "title": "승소 사례 (제목을 입력하세요)",
         "content": draft_content,
-        "summary": request.overview[:100] + "...",
+        "summary": request.overview[:100] + "...",  # type: ignore
         "topic_tags": ["승소사례"],
         "verified": False,
         "date": datetime.now().strftime("%Y-%m-%d"),
@@ -1083,7 +1182,7 @@ def create_case_draft(request: CaseSummaryRequest):
 
 
 # --- Consultation CRM System ---
-from consultation import analyze_consultation_text
+from consultation import analyze_consultation_text  # type: ignore
 
 class ConsultationModel(BaseModel):
     id: str
@@ -1151,7 +1250,7 @@ async def create_consultation(request: ConsultationCreateRequest):
 
     # --- Send Notification to Dashboard via Chat Server (IPC) ---
     try:
-        import websockets
+        import websockets  # type: ignore
         # Connect as a system user to trigger the notification broadcast
         chat_ws_url = f"ws://127.0.0.1:8003/ws/chat/{request.lawyer_id}/consultation_system/user"
         async with websockets.connect(chat_ws_url) as websocket:
@@ -1244,10 +1343,10 @@ def get_dashboard_actions(lawyer_id: str):
     # 2. Check recent content
     # Check if lawyer has any 'case' content in the last 30 days
     has_recent_case = False
-    if lawyer.get("content_items"):
+    if lawyer.get("content_items"):  # type: ignore
         # Check if any item is type 'case'
         # Simple check: just check if they have ANY case for now to stop the annoyance
-        has_recent_case = any(item.get("type") == "case" for item in lawyer["content_items"])
+        has_recent_case = any(item.get("type") == "case" for item in lawyer["content_items"])  # type: ignore
         
     if not has_recent_case:
         suggestions.append({
@@ -1274,7 +1373,7 @@ def get_dashboard_actions(lawyer_id: str):
              "icon": "bell"
         })
 
-    return suggestions[:3] # Return top 3
+    return suggestions[:3] # Return top 3  # type: ignore
 
 # Configure CORS for frontend
 app.add_middleware(
@@ -1359,6 +1458,7 @@ class LawyerModel(BaseModel):
     subscription_plan: Optional[str] = None
     licenseImageUrl: Optional[str] = None
     licenseId: Optional[str] = None
+    is_mock: bool = False
 
 class CaseAnalysisDetails(BaseModel):
     case_nature: str
@@ -1595,7 +1695,7 @@ def approve_submission_legacy(submission_id: str):
             "verified": True,
             "date": submission["date"],
             # Fix NoneType error: check if content exists before startswith
-            "url": submission.get("url") or submission.get("file_url") or (submission["content"] if submission["content"] and submission["content"].startswith("http") else None)
+            "url": submission.get("url") or submission.get("file_url") or (submission["content"] if submission["content"] and submission["content"].startswith("http") else None)  # type: ignore
         }
         lawyer["content_items"].insert(0, new_content) # Add to top
         
@@ -1632,7 +1732,7 @@ def inject_content(lawyer_id: str, request: InjectContentRequest):
     added_items = []
     
     import random
-    from data_templates import REALISTIC_CASE_TITLES, get_all_case_titles
+    from data_templates import REALISTIC_CASE_TITLES, get_all_case_titles  # type: ignore
     
     titles_map = {
         "book": ["법률 가이드북", "소송의 정석", "생활 법률 상식", "전문가의 조언"],
@@ -1765,15 +1865,16 @@ async def signup_lawyer(
         "homepage": None,
         "kakao_id": None,
         "verified": False, # New flag for verification
+        "is_mock": False, # 실제 가입 변호사
         "licenseId": licenseId,
         "licenseImageUrl": license_url
     }
 
     # --- 파운딩 멤버 혜택 자동 부여 ---
     try:
-        from billing import set_founder_benefits, set_standard_trial, FOUNDER_LIMIT
+        from billing import set_founder_benefits, set_standard_trial, FOUNDER_LIMIT  # type: ignore
     except ImportError:
-        from backend.billing import set_founder_benefits, set_standard_trial, FOUNDER_LIMIT
+        from backend.billing import set_founder_benefits, set_standard_trial, FOUNDER_LIMIT  # type: ignore
 
     if len(LAWYERS_DB) < FOUNDER_LIMIT:
         set_founder_benefits(new_lawyer)
@@ -1903,8 +2004,8 @@ def get_magazine_articles():
                 
                 articles.append({
                     "id": item["id"],
-                    "lawyer_id": lawyer["id"],
-                    "lawyer_name": lawyer["name"],
+                    "lawyer_id": lawyer["id"],  # type: ignore
+                    "lawyer_name": lawyer["name"],  # type: ignore
                     "lawyer_firm": lawyer.get("firm", "Lawnald Partner"),
                     "lawyer_firm": lawyer.get("firm", "Lawnald Partner"),
                     "lawyer_image": lawyer.get("cutoutImageUrl") or lawyer.get("imageUrl"), # Frontend handles null with default icon
@@ -1994,8 +2095,8 @@ def get_magazine_article_detail(article_id: str):
                 # Found the item
                 return {
                     "id": item["id"],
-                    "lawyer_id": lawyer["id"],
-                    "lawyer_name": lawyer["name"],
+                    "lawyer_id": lawyer["id"],  # type: ignore
+                    "lawyer_name": lawyer["name"],  # type: ignore
                     "lawyer_image": lawyer.get("cutoutImageUrl"),
                     "firm": lawyer.get("firm", "Lawnald Partner"),
                     "type": item["type"],
@@ -2041,7 +2142,7 @@ def extract_video_id(url: str) -> str:
 
 def fetch_youtube_transcript(video_id: str) -> str:
     """Fetch transcript from YouTube, including auto-generated captions."""
-    from youtube_transcript_api import YouTubeTranscriptApi
+    from youtube_transcript_api import YouTubeTranscriptApi  # type: ignore
     
     try:
         # Try Korean first, then auto-generated Korean, then any available
@@ -2101,14 +2202,14 @@ def fetch_youtube_transcript(video_id: str) -> str:
 
 def generate_youtube_magazine_article(transcript: str, title: str, lawyer_name: str = "") -> dict:
     """Use OpenAI to rewrite YouTube transcript as a magazine article in the lawyer's speaking style."""
-    import openai
+    import openai  # type: ignore
     
     if not transcript or len(transcript.strip()) < 50:
         return {"title": title, "content": "", "tags": []}
     
     # Truncate if too long (GPT context limit)
     if len(transcript) > 15000:
-        transcript = transcript[:15000]
+        transcript = transcript[:15000]  # type: ignore
     
     client = openai.OpenAI()
     
@@ -2176,7 +2277,7 @@ CONTENT:
         
     except Exception as e:
         print(f"OpenAI rewrite error: {e}")
-        return {"title": title, "content": transcript[:3000], "tags": []}
+        return {"title": title, "content": transcript[:3000], "tags": []}  # type: ignore
 
 
 def generate_youtube_summary(url: str, title: str, lawyer_name: str = "") -> dict:
@@ -2216,7 +2317,7 @@ def submit_general_content(lawyer_id: str, submission: ContentSubmission):
         if not submission.url:
              raise HTTPException(status_code=400, detail="YouTube URL is required")
         # Auto-extract transcript and generate magazine article
-        yt_result = generate_youtube_summary(submission.url, submission.title, lawyer.get("name", ""))
+        yt_result = generate_youtube_summary(submission.url, submission.title, lawyer.get("name", ""))  # type: ignore
         
         if yt_result.get("error"):
             raise HTTPException(status_code=400, detail=yt_result["error"])
@@ -2238,16 +2339,16 @@ def submit_general_content(lawyer_id: str, submission: ContentSubmission):
         summary = content_body[:200] + "..."
     else:
         # Default summary
-        summary = content_body[:100] + "..." if content_body else ""
+        summary = content_body[:100] + "..." if content_body else ""  # type: ignore
         
     # (Prior logic for YouTube summary or default summary remains above)
 
         
     # --- Content Validation ---
     try:
-        from validators import content_validator
+        from validators import content_validator  # type: ignore
     except ImportError:
-        from backend.validators import content_validator
+        from backend.validators import content_validator  # type: ignore
     # 1. Length Check (relaxed for AI-generated YouTube content)
     min_len = 30 if submission.type == "youtube" else 100
     len_check = content_validator.validate_length(content_body, min_length=min_len)
@@ -2290,8 +2391,8 @@ def submit_general_content(lawyer_id: str, submission: ContentSubmission):
         
     # --- Auto Image Generation ---
     image_url = None
-    if submission.url and isinstance(submission.url, str) and submission.url.startswith("http"):
-        if "jpg" in submission.url or "png" in submission.url:
+    if submission.url and isinstance(submission.url, str) and submission.url.startswith("http"):  # type: ignore
+        if "jpg" in submission.url or "png" in submission.url:  # type: ignore
             image_url = submission.url
             
     if not image_url:
@@ -2361,13 +2462,18 @@ def delete_lawyer_content(lawyer_id: str, item_id: str):
     save_lawyers_db(LAWYERS_DB)
     return {"message": "Content deleted successfully"}
 
+@app.get("/api/lawyers/{lawyer_id}")
+def get_lawyer_profile(lawyer_id: str):
+    """변호사 개별 프로필 조회 (대시보드 갱신용)"""
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer not found")
+    return lawyer
+
 @app.get("/api/admin/lawyers/pending", response_model=List[LawyerModel])
 def get_pending_lawyers():
-    # Return lawyers who are NOT verified (verified is False or missing)
-    # Note: Our mock data generator might not set 'verified' for old data, so assume True if missing for legacy data, 
-    # but for new signups it is set to False.
-    # Actually, for simplicity, let's look for explicit False.
-    return [l for l in LAWYERS_DB if l.get("verified") is False]
+    # 실제 가입 변호사 중 미인증된 변호사만 반환 (가상 변호사 제외)
+    return [l for l in LAWYERS_DB if l.get("verified") is False and not l.get("is_mock", False)]
 
 @app.post("/api/admin/lawyers/{lawyer_id}/verify")
 def verify_lawyer(lawyer_id: str):
@@ -2407,7 +2513,7 @@ def batch_verify_lawyers(data: BatchLawyerIds):
             lawyer["location"] = lawyer.get("location", "").replace(" (등록 대기)", "")
             lawyer["matchScore"] = 50
             lawyer["content_highlights"] = "신규 등록 변호사"
-            verified_count += 1
+            verified_count += 1  # type: ignore
     
     save_lawyers_db(LAWYERS_DB)
     return {"message": f"{verified_count}명의 변호사가 승인되었습니다.", "count": verified_count}
@@ -2420,7 +2526,7 @@ def batch_reject_lawyers(data: BatchLawyerIds):
         lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
         if lawyer and lawyer.get("verified") is False:
             to_remove.append(lawyer)
-            rejected_count += 1
+            rejected_count += 1  # type: ignore
     
     for lawyer in to_remove:
         LAWYERS_DB.remove(lawyer)
@@ -2429,10 +2535,6 @@ def batch_reject_lawyers(data: BatchLawyerIds):
     return {"message": f"{rejected_count}명의 변호사 가입이 반려되었습니다.", "count": rejected_count}
 
 # --- Admin Lawyer Management (List & Edit) ---
-
-@app.get("/api/admin/lawyers")
-def get_all_lawyers_admin():
-    return LAWYERS_DB
 
 class LawyerUpdateModel(BaseModel):
     name: Optional[str] = None
@@ -2448,10 +2550,11 @@ class LawyerUpdateModel(BaseModel):
     introduction_long: Optional[str] = None
 
 @app.get("/api/admin/lawyers", response_model=List[LawyerModel])
-def get_all_lawyers(q: Optional[str] = None):
+def get_all_lawyers(q: Optional[str] = None, include_mock: bool = False):
+    filtered = LAWYERS_DB if include_mock else [l for l in LAWYERS_DB if not l.get("is_mock", False)]
     if q:
-        return [l for l in LAWYERS_DB if q.lower() in l["name"].lower() or q.lower() in l["id"].lower()]
-    return LAWYERS_DB
+        return [l for l in filtered if q.lower() in l["name"].lower() or q.lower() in l["id"].lower()]
+    return filtered
 
 @app.put("/api/admin/lawyers/{lawyer_id}")
 def update_lawyer(lawyer_id: str, update_data: LawyerUpdateModel):
@@ -2544,7 +2647,7 @@ def get_lawyer_analytics(lawyer_id: str):
             "slug": slug,
             "views": metrics.views,
             "clicks": metrics.clicks,
-            "dwell_time": round(metrics.dwell_time_avg, 1)
+            "dwell_time": round(metrics.dwell_time_avg, 1)  # type: ignore
         })
     
     top_posts.sort(key=lambda x: x["views"], reverse=True)
@@ -2553,29 +2656,29 @@ def get_lawyer_analytics(lawyer_id: str):
         "total_views": total_views,
         "total_conversions": total_conversions,
         "avg_dwell_time": sum(m.dwell_time_avg for m in data.values()) / max(1, len(data)) if data else 0,
-        "top_posts": top_posts[:5]
+        "top_posts": top_posts[:5]  # type: ignore
     }
 
 
 # --- Case Upload & Parsing ---
 try:
-    from backend.case_parser_v2 import case_parser
+    from backend.case_parser_v2 import case_parser  # type: ignore
     print("DEBUG: Successfully imported case_parser from backend.case_parser_v2")
 except ImportError as e:
     print(f"DEBUG: Failed to import backend.case_parser_v2: {e}")
     try:
-        from case_parser_v2 import case_parser
+        from case_parser_v2 import case_parser  # type: ignore
         print("DEBUG: Successfully imported case_parser from case_parser_v2")
-    except ImportError as e2:
+    except ImportError as e2:  # type: ignore
         print(f"DEBUG: Failed to import case_parser_v2: {e2}")
         # Re-raise to see the error in logs if both fail
         raise e2
 
 
 try:
-    from backend.seo import seo_generator
+    from backend.seo import seo_generator  # type: ignore
 except ImportError:
-    from seo import seo_generator
+    from seo import seo_generator  # type: ignore
 
 class CasePublishRequest(BaseModel):
     case_number: str
@@ -2628,7 +2731,7 @@ async def upload_case_pdf(file: UploadFile = File(...)):
         for lawyer in LAWYERS_DB:
             for item in lawyer.get("content_items", []):
                 if item.get("file_hash") == file_hash:
-                    case_parser.log_debug(f"DEBUG: Duplicate PDF detected (Hash: {file_hash[:10]}...)")
+                    case_parser.log_debug(f"DEBUG: Duplicate PDF detected (Hash: {file_hash[:10]}...)")  # type: ignore
                     raise HTTPException(status_code=409, detail="이미 등록된 판결문입니다. 중복 업로드는 허용되지 않습니다.")
 
         # Check if text is sufficient. If not, try Vision fallback
@@ -2680,7 +2783,7 @@ async def publish_case(data: CasePublishRequest):
         "id": case_id,
         "type": "case",
         "title": data.title,
-        "summary": data.summary or data.story[:100] + "...",
+        "summary": data.summary or data.story[:100] + "...",  # type: ignore
         "content": data.story, # The full narrative
         "full_text": data.full_text, # Original text (anonymized)
         "case_number": data.case_number,
@@ -2735,9 +2838,9 @@ async def get_admin_submissions(status: str = "pending"):
             if item.get("status") == status:
                 # Add lawyer info to item for admin view if not present
                 if "lawyer_name" not in item:
-                    item["lawyer_name"] = lawyer["name"]
+                    item["lawyer_name"] = lawyer["name"]  # type: ignore
                 if "lawyer_id" not in item:
-                    item["lawyer_id"] = lawyer["id"]
+                    item["lawyer_id"] = lawyer["id"]  # type: ignore
                 
                 # Ensure topic_tags exists if tags exists
                 if "topic_tags" not in item and "tags" in item:
@@ -2765,7 +2868,7 @@ async def approve_submission(item_id: str):
                 # Boost score
                 if "suitability_score" not in lawyer:
                     lawyer["suitability_score"] = 0
-                lawyer["suitability_score"] += 10
+                lawyer["suitability_score"] += 10  # type: ignore
                 
                 save_lawyers_db(LAWYERS_DB)
                 return {"message": "Approved successfully"}
@@ -2892,9 +2995,9 @@ async def get_consultations(lawyer_id: str, status: Optional[str] = None, search
 
 # --- Case Archive API ---
 try:
-    from backend.cases import case_manager
+    from backend.cases import case_manager  # type: ignore
 except ImportError:
-    from cases import case_manager
+    from cases import case_manager  # type: ignore
 
 @app.get("/api/cases/admin")
 def get_admin_cases():

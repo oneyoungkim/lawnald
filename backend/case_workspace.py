@@ -8,14 +8,14 @@ PDF/Word 문서 업로드 → 텍스트 추출 → 3줄 요약 → 문맥 기반
 MVP: 메모리 기반 세션 저장 (DB 불필요)
 """
 
-from fastapi import APIRouter, UploadFile, File, Form
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, UploadFile, File, Form  # type: ignore
+from fastapi.responses import JSONResponse  # type: ignore
+from pydantic import BaseModel  # type: ignore
 from typing import List, Optional, Dict
-import openai
+import openai  # type: ignore
 import os
 import io
-import fitz  # PyMuPDF
+import fitz  # type: ignore  # PyMuPDF
 from datetime import datetime
 from uuid import uuid4
 
@@ -50,7 +50,7 @@ def extract_text_from_pdf(content: bytes) -> str:
 def extract_text_from_docx(content: bytes) -> str:
     """python-docx로 Word 문서에서 텍스트 추출"""
     try:
-        from docx import Document
+        from docx import Document  # type: ignore
         doc = Document(io.BytesIO(content))
         return "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
     except ImportError:
@@ -120,7 +120,7 @@ async def upload_case_documents(files: List[UploadFile] = File(...)):
     if not files:
         return JSONResponse(status_code=400, content={"detail": "파일을 1개 이상 업로드해 주세요."})
 
-    session_id = str(uuid4())[:12]
+    session_id = str(uuid4())[:12]  # type: ignore
     all_texts = []
     doc_info = []
 
@@ -160,7 +160,7 @@ async def upload_case_documents(files: List[UploadFile] = File(...)):
     # 컨텍스트 길이 제한 (o1 토큰 한도 고려)
     max_chars = 80000
     if len(merged_context) > max_chars:
-        merged_context = merged_context[:max_chars] + "\n\n... (이하 생략: 문서가 너무 길어 일부만 분석합니다)"
+        merged_context = merged_context[:max_chars] + "\n\n... (이하 생략: 문서가 너무 길어 일부만 분석합니다)"  # type: ignore
 
     # 3줄 요약 생성
     summary = ""
@@ -170,7 +170,7 @@ async def upload_case_documents(files: List[UploadFile] = File(...)):
             model="o1",
             messages=[
                 {"role": "developer", "content": SUMMARY_PROMPT},
-                {"role": "user", "content": f"다음 사건 관련 문서를 분석하고 핵심 내용 3줄 요약을 작성해 줘:\n\n{merged_context[:15000]}"}
+                {"role": "user", "content": f"다음 사건 관련 문서를 분석하고 핵심 내용 3줄 요약을 작성해 줘:\n\n{merged_context[:15000]}"}  # type: ignore
             ],
             max_completion_tokens=500,
         )
@@ -210,7 +210,7 @@ async def case_chat(request: ChatRequest):
 
     # 세션이 없으면 빈 세션을 자동 생성 (문서 없이 대화 가능)
     if not session_id or session_id not in WORKSPACE_SESSIONS:
-        session_id = str(uuid4())[:12]
+        session_id = str(uuid4())[:12]  # type: ignore
         WORKSPACE_SESSIONS[session_id] = {
             "context": "",
             "documents": [],
@@ -258,7 +258,7 @@ async def case_chat(request: ChatRequest):
 
         print(f"[Workspace] 💬 세션 [{session_id}] 대화 ({len(chat_history) // 2}번째)")
 
-        return ChatResponse(
+        return ChatResponse(  # type: ignore
             reply=reply,
             session_id=session_id,
         )

@@ -20,6 +20,7 @@ interface Lawyer {
     content_highlights: string;
     created_at?: string;
     verified?: boolean;
+    is_mock?: boolean;
 }
 
 export default function AdminLawyersPage() {
@@ -27,6 +28,7 @@ export default function AdminLawyersPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortMode, setSortMode] = useState<"recent" | "name">("recent");
+    const [includeMock, setIncludeMock] = useState(false);
 
     // Edit Modal State
     const [editingLawyer, setEditingLawyer] = useState<any>(null);
@@ -78,11 +80,11 @@ export default function AdminLawyersPage() {
     const fetchLawyers = async () => {
         setLoading(true);
         try {
-            // Use the direct admin endpoint to get ALL lawyers (raw DB)
-            const res = await fetch(`${API_BASE}/api/admin/lawyers`);
+            // Use the direct admin endpoint to get lawyers
+            const res = await fetch(`${API_BASE}/api/admin/lawyers?include_mock=${includeMock}`);
             if (res.ok) {
                 const data = await res.json();
-                setLawyers(data); // Endpoint returns List[LawyerModel] directly
+                setLawyers(data);
             }
         } catch (error) {
             console.error("Failed", error);
@@ -93,7 +95,7 @@ export default function AdminLawyersPage() {
 
     useEffect(() => {
         fetchLawyers();
-    }, []);
+    }, [includeMock]);
 
     const handleInject = async (lawyerId: string, type: string, count: number) => {
         if (!confirm(`${type} ${count}건을 강제로 추가하시겠습니까?`)) return;
@@ -188,6 +190,15 @@ export default function AdminLawyersPage() {
                             가나다 순
                         </button>
                     </div>
+                    <button
+                        onClick={() => setIncludeMock(!includeMock)}
+                        className={`px-4 py-3 text-sm font-bold rounded-xl border transition-colors whitespace-nowrap ${includeMock
+                                ? "bg-purple-600 text-white border-purple-600"
+                                : "bg-white dark:bg-zinc-900 text-neutral-500 border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-800"
+                            }`}
+                    >
+                        🤖 {includeMock ? "가상 변호사 포함 중" : "가상 변호사 보기"}
+                    </button>
                 </div>
 
                 <p className="text-sm text-neutral-500 mb-4">총 {filteredLawyers.length}명의 변호사</p>
@@ -207,6 +218,9 @@ export default function AdminLawyersPage() {
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     {lawyer.name}
                                     <span className="text-xs text-neutral-400 font-normal">({lawyer.id})</span>
+                                    {lawyer.is_mock && (
+                                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">🤖 가상</span>
+                                    )}
                                     {lawyer.verified === false ? (
                                         <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full">⏳ 인증 대기</span>
                                     ) : (

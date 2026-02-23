@@ -35,6 +35,16 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // 로컬 개발: /api/* → FastAPI 백엔드 프록시
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
+      },
+    ];
+  },
+
   // 보안 헤더
   async headers() {
     return [
