@@ -3,7 +3,7 @@
 import { API_BASE } from "@/lib/api";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import LawyerMenu from "../components/LawyerMenu";
+import LawyerMenu from "../../components/LawyerMenu";
 import Image from "next/image";
 
 const EXPERTISE_OPTIONS = [
@@ -168,8 +168,8 @@ export default function LawyerProfilePage() {
                         onClick={handleSave}
                         disabled={saving}
                         className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${saved
-                                ? "bg-green-500 text-white"
-                                : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90"
+                            ? "bg-green-500 text-white"
+                            : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90"
                             } disabled:opacity-50`}
                     >
                         {saving ? "저장 중..." : saved ? "✓ 저장됨" : "저장"}
@@ -272,8 +272,8 @@ export default function LawyerProfilePage() {
                                 type="button"
                                 onClick={() => toggleExpertise(exp)}
                                 className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${expertise.includes(exp)
-                                        ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-sm"
-                                        : "bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border-gray-200 dark:border-zinc-700 hover:border-gray-400 dark:hover:border-zinc-500"
+                                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-sm"
+                                    : "bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border-gray-200 dark:border-zinc-700 hover:border-gray-400 dark:hover:border-zinc-500"
                                     }`}
                             >
                                 {exp}
@@ -316,8 +316,8 @@ export default function LawyerProfilePage() {
                         onClick={handleSave}
                         disabled={saving}
                         className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${saved
-                                ? "bg-green-500 text-white shadow-lg shadow-green-500/20"
-                                : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 shadow-lg shadow-gray-900/10"
+                            ? "bg-green-500 text-white shadow-lg shadow-green-500/20"
+                            : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 shadow-lg shadow-gray-900/10"
                             } disabled:opacity-50`}
                     >
                         {saving ? "저장 중..." : saved ? "✓ 저장 완료!" : "변경사항 저장"}
