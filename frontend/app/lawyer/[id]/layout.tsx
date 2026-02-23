@@ -28,14 +28,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 async function getLawyer(id: string): Promise<LawyerDetail | null> {
-    try {
-        const res = await fetch(`https://lawnald.com/api/public/lawyers/${id}`, { cache: 'no-store' });
-        if (!res.ok) return null;
-        return res.json();
-    } catch (e) {
-        console.error(e);
-        return null;
+    const urls = [
+        `${API_BASE}/api/lawyers/${id}`,
+        `http://127.0.0.1:8000/api/lawyers/${id}`,
+    ];
+    for (const url of urls) {
+        try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (res.ok) return res.json();
+        } catch { }
     }
+    return null;
 }
 
 export default async function LawyerLayout({
@@ -89,7 +92,7 @@ export default async function LawyerLayout({
                         </div>
 
                         <h1 className="text-5xl md:text-7xl font-serif font-medium leading-tight mb-6 text-main">
-                            {lawyer.name} <span className="text-zinc-400 font-sans text-4xl align-middle">변호사</span>
+                            {lawyer.name?.endsWith('변호사') ? lawyer.name : `${lawyer.name}`} <span className="text-zinc-400 font-sans text-4xl align-middle">{lawyer.name?.endsWith('변호사') ? '' : '변호사'}</span>
                         </h1>
 
                         <div className="text-xl md:text-2xl text-zinc-600 font-light leading-relaxed mb-10 break-keep">
@@ -99,8 +102,10 @@ export default async function LawyerLayout({
                                 ))
                             ) : (
                                 <>
-                                    "{lawyer.firm}"의 파트너로서,<br className="hidden md:block" />
-                                    당신의 복잡한 법률 문제를 명쾌하게 해결합니다.
+                                    {lawyer.firm} 소속<br className="hidden md:block" />
+                                    {lawyer.expertise?.filter(e => e !== '일반').length > 0
+                                        ? `${lawyer.expertise.filter(e => e !== '일반').join(', ')} 전문`
+                                        : '법률 문제, 전문가와 상담하세요.'}
                                 </>
                             )}
                         </div>
