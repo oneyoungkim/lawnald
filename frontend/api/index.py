@@ -614,6 +614,23 @@ async def signup_lawyer(
     
     LAWYERS_DB.append(new_lawyer)
     save_lawyers_db(LAWYERS_DB)
+    
+    # 직접 Supabase에 개별 저장 (save_lawyers_db의 대량 upsert 실패 대비)
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        _sb = get_supabase()
+        if _sb:
+            from datetime import datetime as _dt2
+            _sb.table("lawyers").upsert({
+                "id": new_lawyer["id"],
+                "data": new_lawyer,
+                "is_mock": False,
+                "verified": False,
+                "updated_at": _dt2.now().isoformat(),
+            }, on_conflict="id").execute()
+            print(f"✅ 변호사 개별 Supabase 저장 완료: {new_lawyer['id']}")
+    except Exception as e:
+        print(f"⚠️ 변호사 개별 Supabase 저장 실패: {e}")
 
     founder_msg = " 🎉 가입 신청이 완료되었습니다! 관리자 검토 후 승인됩니다." if new_lawyer.get("is_founder") else " 가입 신청이 완료되었습니다. 관리자 검토 후 승인됩니다."
     return {"message": founder_msg, "lawyer_id": new_lawyer["id"], "is_founder": new_lawyer.get("is_founder", False), "status": "pending_review"}
