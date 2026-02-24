@@ -1,17 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export default function SearchForm() {
     const [query, setQuery] = useState("");
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [hasTyped, setHasTyped] = useState(false);
+    const [showNotice, setShowNotice] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const router = useRouter();
 
-    // Auto-resize textarea
     useEffect(() => {
         const textarea = textareaRef.current;
         if (textarea) {
@@ -27,14 +24,9 @@ export default function SearchForm() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!query.trim()) {
-            textareaRef.current?.focus();
-            return;
-        }
-        setIsAnalyzing(true);
-        router.push(`/result?q=${encodeURIComponent(query)}`);
+        setShowNotice(true);
     };
 
     const hasText = query.length > 0;
@@ -81,35 +73,44 @@ export default function SearchForm() {
                 <div className="flex flex-col items-center gap-6 mt-4">
                     <button
                         type="submit"
-                        disabled={isAnalyzing || !hasText}
                         className={`
-                            group
-                            relative w-full sm:w-auto min-w-[200px] h-[56px]
+                            group relative w-full sm:w-auto min-w-[200px] h-[56px]
                             bg-main text-white text-base font-semibold rounded-[16px]
                             transition-all duration-200 ease-out
                             shadow-lg shadow-main/20
-                            flex items-center justify-center gap-2
-                            overflow-hidden
-                            disabled:opacity-50 disabled:cursor-default disabled:transform-none
-                            ${hasText ? 'opacity-100 hover:bg-main/90 hover:shadow-xl active:translate-y-[1px]' : 'opacity-85'}
+                            flex items-center justify-center gap-2 overflow-hidden
+                            hover:bg-main/90 hover:shadow-xl active:translate-y-[1px]
                         `}
                     >
                         <div className="relative z-10 flex items-center gap-2">
-                            {isAnalyzing ? (
-                                <>
-                                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                    </svg>
-                                    <span>분석 중...</span>
-                                </>
-                            ) : (
-                                <span>변호사 추천받기</span>
-                            )}
+                            <span>변호사 추천받기</span>
                         </div>
                     </button>
                 </div>
             </form>
+
+            {showNotice && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowNotice(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md mx-4 p-8 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-amber-50 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-zinc-900 mb-3">서비스 준비 중</h3>
+                        <p className="text-zinc-600 text-sm leading-relaxed mb-6">
+                            대한변호사협회와 심도 깊은 논의 뒤<br />
+                            오픈하겠습니다.
+                        </p>
+                        <button
+                            onClick={() => setShowNotice(false)}
+                            className="px-8 py-3 bg-zinc-900 text-white text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors"
+                        >
+                            확인
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
