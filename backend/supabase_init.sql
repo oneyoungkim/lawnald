@@ -76,3 +76,74 @@ CREATE POLICY "stats_select" ON site_stats FOR SELECT USING (true);
 CREATE POLICY "stats_insert" ON site_stats FOR INSERT WITH CHECK (true);
 CREATE POLICY "stats_update" ON site_stats FOR UPDATE USING (true);
 CREATE POLICY "stats_delete" ON site_stats FOR DELETE USING (true);
+
+-- ============================================
+-- 리드 테이블 (변호사별 상담 리드)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS leads (
+  id TEXT PRIMARY KEY,
+  lawyer_id TEXT NOT NULL,
+  data JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "leads_all" ON leads USING (true) WITH CHECK (true);
+
+-- ============================================
+-- 의뢰인 사연 테이블
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS client_stories (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL,
+  data JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE client_stories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "stories_all" ON client_stories USING (true) WITH CHECK (true);
+
+-- ============================================
+-- 상담 테이블
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS consultations (
+  id TEXT PRIMARY KEY,
+  lawyer_id TEXT NOT NULL,
+  data JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE consultations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "consult_all" ON consultations USING (true) WITH CHECK (true);
+
+-- ============================================
+-- 콘텐츠 제출 테이블
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS submissions (
+  id TEXT PRIMARY KEY,
+  lawyer_id TEXT NOT NULL,
+  data JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "subs_all" ON submissions USING (true) WITH CHECK (true);
+
+-- ============================================
+-- 채팅 세션 테이블
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id TEXT PRIMARY KEY,
+  lawyer_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  messages JSONB DEFAULT '[]',
+  last_updated TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "chats_all" ON chat_sessions USING (true) WITH CHECK (true);

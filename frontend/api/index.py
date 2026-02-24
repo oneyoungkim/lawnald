@@ -769,7 +769,10 @@ class LeadCreateRequest(BaseModel):
     case_summary: str
     contact_type: str
 
-LEADS_DB = []
+from persistent_db import sb_append, sb_load_all, sb_load_by_fk, sb_update  # type: ignore
+
+LEADS_DB = sb_load_all("leads") or []
+print(f"📊 리드 복원 (Supabase): {len(LEADS_DB)}건")
 
 @app.post("/api/lawyers/{lawyer_id}/leads")
 def create_lead(lawyer_id: str, request: LeadCreateRequest):
@@ -787,22 +790,23 @@ def create_lead(lawyer_id: str, request: LeadCreateRequest):
     }
     
     LEADS_DB.append(lead)
-    # Ideally persist leads to disk here
+    sb_append("leads", lead)
     
     print(f"변호사 {lawyer_id}에 대한 리드 생성: {request.contact_type}")
     return {"message": "리드가 성공적으로 접수되었습니다.", "lead_id": lead["id"]}
 
 @app.get("/api/lawyers/{lawyer_id}/leads", response_model=List[LeadModel])
 def get_lawyer_leads(lawyer_id: str):
-    # Retrieve leads for this lawyer, sorted by latest first
-    leads = [l for l in LEADS_DB if l["lawyer_id"] == lawyer_id]
-    leads.sort(key=lambda x: x["timestamp"], reverse=True)
+    # Retrieve leads for this lawyer from Supabase
+    leads = sb_load_by_fk("leads", "lawyer_id", lawyer_id) or [l for l in LEADS_DB if l["lawyer_id"] == lawyer_id]
+    leads.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     return leads
 
 # --- Client Dashboard APIs ---
 
 # 의뢰인 사연 저장 DB
-CLIENT_STORIES_DB = []
+CLIENT_STORIES_DB = sb_load_all("client_stories") or []
+print(f"📊 의뢰인 사연 복원 (Supabase): {len(CLIENT_STORIES_DB)}건")
 
 class ClientStoryRequest(BaseModel):
     client_id: str
@@ -822,12 +826,13 @@ def save_client_story(request: ClientStoryRequest):
         "status": "접수완료"
     }
     CLIENT_STORIES_DB.append(story)
+    sb_append("client_stories", story, fk_field="client_id")
     return {"message": "사연이 저장되었습니다.", "story": story}
 
 @app.get("/api/client/{client_id}/stories")
 def get_client_stories(client_id: str):
-    stories = [s for s in CLIENT_STORIES_DB if s["client_id"] == client_id]
-    stories.sort(key=lambda x: x["created_at"], reverse=True)
+    stories = sb_load_by_fk("client_stories", "client_id", client_id) or [s for s in CLIENT_STORIES_DB if s["client_id"] == client_id]
+    stories.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return stories
 
 @app.get("/api/client/{client_id}/chats")
@@ -1369,7 +1374,8 @@ class ActionSuggestion(BaseModel):
     cta_link: str
     icon: str # emoji or icon name
 
-CONSULTATIONS_DB = []
+CONSULTATIONS_DB = sb_load_all("consultations") or []
+print(f"📊 상담 복원 (Supabase): {len(CONSULTATIONS_DB)}건")
 
 @app.post("/api/consultations", response_model=ConsultationModel)
 async def create_consultation(request: ConsultationCreateRequest):
@@ -1392,6 +1398,7 @@ async def create_consultation(request: ConsultationCreateRequest):
     }
     
     CONSULTATIONS_DB.append(consultation)
+    sb_append("consultations", consultation)
 
     # --- Send Notification to Dashboard via Chat Server (IPC) ---
     try:
@@ -1681,7 +1688,8 @@ class ContentSubmission(BaseModel):
     career: Optional[str] = None
     education: Optional[str] = None
 
-SUBMISSIONS_DB = []
+SUBMISSIONS_DB = sb_load_all("submissions") or []
+print(f"📊 콘텐츠 제출 복원 (Supabase): {len(SUBMISSIONS_DB)}건")
 
 @app.post("/api/lawyers/{lawyer_id}/submit")
 async def submit_content(
@@ -1711,13 +1719,23 @@ async def submit_content(
             import re
             filename = re.sub(r'[^a-zA-Z0-9_.-]', '', filename)
             
-            # Save file
-            import shutil
-            file_path = f"static/documents/{filename}"
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            # Upload to Supabase Storage
+            file_bytes = await file.read()
+            try:
+                from storage_utils import upload_and_get_url  # type: ignore
+                sb_url = upload_and_get_url("cases", filename, file_bytes, file.content_type or "application/octet-stream")
+                if sb_url:
+                    file_url = sb_url
+            except Exception:
+                pass
             
-            file_url = f"http://localhost:8000/static/documents/{filename}"
+            # Fallback: save to /tmp
+            if not file_url:
+                os.makedirs("/tmp/documents", exist_ok=True)
+                file_path = f"/tmp/documents/{filename}"
+                with open(file_path, "wb") as buffer:
+                    buffer.write(file_bytes)
+                file_url = f"/uploads/documents/{filename}"
         except Exception as e:
             print(f"File upload failed: {e}")
             raise HTTPException(status_code=500, detail="File upload failed")
@@ -1741,6 +1759,7 @@ async def submit_content(
     }
     
     SUBMISSIONS_DB.append(submission)
+    sb_append("submissions", submission)
 
     # Auto-add to lawyer's content_items for Magazine visibility
     if type in ["column", "blog", "case"]:
