@@ -1,5 +1,7 @@
-// Server component: resolve API base from env directly
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Server component: resolve API base — must be absolute URL for SSR fetch
+const API_BASE = process.env.NEXT_PUBLIC_API_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+    || "http://localhost:3000";
 import type { Metadata } from "next";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
