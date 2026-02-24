@@ -1,6 +1,7 @@
 "use client";
 
 import { API_BASE } from "@/lib/api";
+import { useLawyerAuth } from "@/lib/useLawyerAuth";
 
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
@@ -68,43 +69,49 @@ function LawyerDashboardContent() {
     useEffect(() => {
         const stored = localStorage.getItem("lawyer_user");
         if (stored) {
-            const parsedLawyer = JSON.parse(stored);
-            setLawyer(parsedLawyer);
+            try {
+                const parsedLawyer = JSON.parse(stored);
+                setLawyer(parsedLawyer);
 
-            // 서버에서 최신 변호사 정보를 가져와 verified 등 상태를 갱신
-            fetch(`${API_BASE}/api/lawyers/${parsedLawyer.id}`)
-                .then(res => res.ok ? res.json() : null)
-                .then(serverData => {
-                    if (serverData) {
-                        const updatedLawyer = { ...parsedLawyer, ...serverData };
-                        setLawyer(updatedLawyer);
-                        localStorage.setItem("lawyer_user", JSON.stringify(updatedLawyer));
-                    }
-                })
-                .catch(() => {}); // 실패해도 기존 데이터로 진행
+                // 서버에서 최신 변호사 정보를 가져와 verified 등 상태를 갱신
+                fetch(`${API_BASE}/api/lawyers/${parsedLawyer.id}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(serverData => {
+                        if (serverData) {
+                            const updatedLawyer = { ...parsedLawyer, ...serverData };
+                            setLawyer(updatedLawyer);
+                            localStorage.setItem("lawyer_user", JSON.stringify(updatedLawyer));
+                        }
+                    })
+                    .catch(() => { }); // 실패해도 기존 데이터로 진행
 
-            Promise.all([
-                fetch(`${API_BASE}/api/lawyers/${parsedLawyer.id}/leads`).then(res => res.json()),
-                fetch(`${API_BASE}/api/consultations?lawyer_id=${parsedLawyer.id}`).then(res => res.json()),
-                fetch(`${API_BASE}/api/cases/my?lawyer_id=${parsedLawyer.id}`).then(res => res.json()), // Fetch My Cases (includes pending)
-                fetch(`${API_BASE}/api/dashboard/actions?lawyer_id=${parsedLawyer.id}`).then(res => res.json()),
-                fetch(`${API_BASE}/api/stats/monthly`).then(res => res.json())
-            ]).then(([leadsData, consultsData, casesData, actionsData, statsData]) => {
-                setLeads(leadsData);
-                setConsultations(consultsData);
-                // Filter for pending status
-                setDrafts(casesData.filter((c: any) => c.status === 'pending'));
-                setActions(actionsData);
-                setStats(statsData);
+                Promise.all([
+                    fetch(`${API_BASE}/api/lawyers/${parsedLawyer.id}/leads`).then(res => res.json()).catch(() => []),
+                    fetch(`${API_BASE}/api/consultations?lawyer_id=${parsedLawyer.id}`).then(res => res.json()).catch(() => []),
+                    fetch(`${API_BASE}/api/cases/my?lawyer_id=${parsedLawyer.id}`).then(res => res.json()).catch(() => []),
+                    fetch(`${API_BASE}/api/dashboard/actions?lawyer_id=${parsedLawyer.id}`).then(res => res.json()).catch(() => []),
+                    fetch(`${API_BASE}/api/stats/monthly`).then(res => res.json()).catch(() => null)
+                ]).then(([leadsData, consultsData, casesData, actionsData, statsData]) => {
+                    setLeads(leadsData || []);
+                    setConsultations(consultsData || []);
+                    // Filter for pending status
+                    setDrafts((casesData || []).filter((c: any) => c.status === 'pending'));
+                    setActions(actionsData || []);
+                    setStats(statsData);
+                    setLoading(false);
+                }).catch(err => {
+                    console.error("Dashboard data fetch error:", err);
+                    setLoading(false);
+                });
+            } catch {
                 setLoading(false);
-            }).catch(err => {
-                console.error("Dashboard data fetch error:", err);
-                setLoading(false);
-            });
+                router.push("/login");
+            }
         } else {
+            setLoading(false);
             router.push("/login");
         }
-    }, [router]);
+    }, []);
 
     useEffect(() => {
         // Handle Deep Linking for Chat

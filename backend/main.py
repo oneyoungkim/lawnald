@@ -1127,7 +1127,7 @@ async def upload_case_pdf(lawyer_id: str = Form(...), file: UploadFile = File(..
 <hr>
 <p class="text-xs text-gray-500">* 본 게시물은 AI가 판결문을 분석하여 작성한 초안입니다. 정확한 내용은 반드시 원문과 대조하여 검토해주시기 바랍니다.</p>
 """,
-        "summary": analysis.get('overview', '')[:100] + "...",
+        "summary": analysis.get('overview', '')[:100] + "...",  # type: ignore
         "topic_tags": ["AI생성", "승소사례", analysis.get('result', '승소')],
         "verified": False,
         "date": datetime.now().strftime("%Y-%m-%d"),
@@ -2549,8 +2549,15 @@ def get_lawyer_profile(lawyer_id: str):
 
 @app.get("/api/admin/lawyers/pending", response_model=List[LawyerModel])
 def get_pending_lawyers():
-    # 실제 가입 변호사 중 미인증된 변호사만 반환 (가상 변호사 제외)
-    return [l for l in LAWYERS_DB if l.get("verified") is False and not l.get("is_mock", False)]
+    # 실제 가입 변호사 중 미인증된 변호사만 반환
+    # 가상 변호사(lawyer-N 패턴) 및 is_mock 제외
+    import re
+    return [
+        l for l in LAWYERS_DB 
+        if l.get("verified") is False 
+        and not l.get("is_mock", False)
+        and not re.match(r'^lawyer-\d+$', l.get("id", ""))
+    ]
 
 @app.post("/api/admin/lawyers/{lawyer_id}/verify")
 def verify_lawyer(lawyer_id: str):

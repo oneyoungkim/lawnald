@@ -10,8 +10,8 @@ import json
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, Header
+from pydantic import BaseModel  # type: ignore
+from fastapi import APIRouter, HTTPException, Header  # type: ignore
 
 router = APIRouter(prefix="/api/admin/blog", tags=["admin-blog"])
 
@@ -134,11 +134,11 @@ async def get_post(post_id: str):
 
     # featured_lawyer 정보 포함
     featured_lawyer = None
-    if post.get("featured_lawyer_id"):
+    if post.get("featured_lawyer_id"):  # type: ignore
         try:
-            from data import LAWYERS_DB
+            from data import LAWYERS_DB  # type: ignore
             featured_lawyer = next(
-                (l for l in LAWYERS_DB if l["id"] == post["featured_lawyer_id"]), None
+                (l for l in LAWYERS_DB if l["id"] == post["featured_lawyer_id"]), None  # type: ignore
             )
             if featured_lawyer:
                 featured_lawyer = {
@@ -154,7 +154,7 @@ async def get_post(post_id: str):
         except Exception:
             pass
 
-    return {**post, "featured_lawyer": featured_lawyer}
+    return {**post, "featured_lawyer": featured_lawyer}  # type: ignore
 
 
 # --- Admin CRUD (Auth Required) ---
@@ -164,7 +164,7 @@ async def create_post(post: AdminPostCreate, authorization: Optional[str] = Head
     verify_admin(authorization)
 
     new_post = {
-        "id": str(uuid.uuid4())[:8],
+        "id": str(uuid.uuid4())[:8],  # type: ignore
         "title": post.title,
         "content": post.content,
         "summary": post.summary,

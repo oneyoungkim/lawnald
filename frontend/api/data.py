@@ -197,7 +197,7 @@ def generate_lawyers(count=100):
                 else:
                     summary = f"본 칼럼에서는 {title}와 관련된 핵심 법리 및 실무적 유의사항을 다룹니다. 복잡한 법률 문제를 알기 쉽게 풀이하여 실질적인 도움을 드리고자 합니다."
 
-                from seo import seo_generator
+                from seo import seo_generator  # type: ignore
                 
                 # SEO Generation
                 slug = seo_generator.generate_slug(title)
@@ -302,11 +302,69 @@ def _save_to_supabase(db):
         return False
 
 
+def _filter_real_lawyers(lawyers):
+    """is_mock=True인 가상 변호사를 필터링합니다."""
+    import re
+    real = []
+    mock_count = 0
+    for lawyer in lawyers:
+        is_mock = lawyer.get("is_mock", False)
+        if not is_mock and not re.match(r'^lawyer-\d+$', lawyer.get("id", "")):
+            real.append(lawyer)
+        else:
+            mock_count += 1  # type: ignore
+    if mock_count > 0:
+        print(f"🗑️ 가상 변호사 {mock_count}명 필터링 완료 (실제 {len(real)}명 유지)")
+    return real
+
+
+# --- SEED USER (Kim Won-young) ---
+_KIM_WON_YOUNG_SEED = {
+    "id": "welder49264@naver.com",
+    "name": "김원영 변호사",
+    "email": "welder49264@naver.com",
+    "password": "password",
+    "role": "lawyer",
+    "firm": "법무법인 맥디",
+    "location": "서울 서초구",
+    "career": "경력 15년, 형사법 전문",
+    "education": "서울대학교 법학전문대학원 졸업",
+    "careerTags": ["대형 로펌 출신", "검사 출신"],
+    "expertise": ["형사법 전문", "성범죄", "교통사고"],
+    "cases": [
+        {"title": "보이스피싱 현금 수거책 무죄", "summary": "구인광고를 보고 단순 아르바이트로 인지했음을 입증하여 무죄 판결을 이끌어냈습니다."},
+        {"title": "강제추행 기소유예 처분", "summary": "피해자와의 원만한 합의를 이끌어내고 기소유예 처분을 받았습니다."},
+        {"title": "음주운전 집행유예 방어", "summary": "구체적인 재범 방지 대책을 제시하여 집행유예를 선고받았습니다."}
+    ],
+    "content_items": [],
+    "phone": "010-1234-5678",
+    "homepage": "https://macdee.co.kr",
+    "kakao_id": "won_lawyer",
+    "verified": True,
+    "is_mock": False,
+    "imageUrl": "/lawyers/lawyer_male_1_1770727915967.png",
+    "bgRemoveStatus": "done",
+    "gender": "Male",
+    "is_subscribed": True,
+    "is_founder": True,
+    "subscription_plan": "lifetime_free",
+    "blog_theme": {"primaryColor": "#0F172A", "secondaryColor": "#E2E8F0", "accentColor": "#3B82F6"},
+    "blog_content": {
+        "hero_description": "의뢰인의 삶을 지키는 법률 서비스,<br/><strong>김원영</strong>이 함께하겠습니다.",
+        "consultation_title": "무료 법률 상담",
+        "consultation_message": "복잡한 법률 문제,<br/>전문가와 직접 이야기하세요."
+    }
+}
+
+
 def load_lawyers_db():
     # 1. Supabase 시도 (프로덕션)
     supabase_lawyers = _load_from_supabase()
     if supabase_lawyers is not None and len(supabase_lawyers) > 0:
-        return supabase_lawyers
+        real_lawyers = _filter_real_lawyers(supabase_lawyers)
+        if len(real_lawyers) < len(supabase_lawyers):
+            save_lawyers_db(real_lawyers)
+        return real_lawyers
 
     # 2. JSON 파일 폴백 (로컬 개발)
     if os.path.exists(DB_FILE):
@@ -314,95 +372,20 @@ def load_lawyers_db():
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 print(f"Loading DB from {DB_FILE}")
                 lawyers = json.load(f)
-                # Supabase가 비어 있었다면 JSON 데이터를 초기 시드로 업로드
-                if supabase_lawyers is not None and len(supabase_lawyers) == 0:
+                real_lawyers = _filter_real_lawyers(lawyers)
+                if len(real_lawyers) < len(lawyers):
+                    save_lawyers_db(real_lawyers)
+                if supabase_lawyers is not None and len(supabase_lawyers) == 0 and real_lawyers:
                     print("📤 JSON → Supabase 초기 시드 업로드 시작...")
-                    _save_to_supabase(lawyers)
-                return lawyers
+                    _save_to_supabase(real_lawyers)
+                return real_lawyers
         except Exception as e:
-            print(f"Failed to load DB: {e}. Regenerating.")
-    
-    # Generate fresh data if file doesn't exist or failed to load
-    print("Generating new mock DB")
-    lawyers = generate_lawyers(100)
-    
-    # --- SEED MANUAL USER (Kim Won-young) ---
-    kim_won_young = {
-        "id": "welder49264@naver.com",
-        "name": "김원영 변호사",
-        "email": "welder49264@naver.com",
-        "password": "password",  # Explicit password
-        "role": "lawyer",
-        "firm": "법무법인 맥디",
-        "location": "서울 서초구",
-        "career": "경력 15년, 형사법 전문",
-        "education": "서울대학교 법학전문대학원 졸업",
-        "careerTags": ["대형 로펌 출신", "검사 출신"],
-        "expertise": ["형사법 전문", "성범죄", "교통사고"],
-        "cases": [
-            {
-                "title": "보이스피싱 현금 수거책 무죄",
-                "summary": "구인광고를 보고 단순 아르바이트로 인지했음을 입증하여 무죄 판결을 이끌어냈습니다. 수사 초기 단계부터 적극적으로 대응하여, 피의자의 고의성이 없음을 강조했습니다."
-            },
-            {
-                "title": "강제추행 기소유예 처분",
-                "summary": "피해자와의 원만한 합의를 이끌어내고, 의뢰인의 진지한 반성과 재발 방지 노력을 피력하여 검찰 단계에서 기소유예 처분을 받았습니다."
-            },
-            {
-                "title": "음주운전 집행유예 방어",
-                "summary": "과거 동종 전력이 있음에도 불구하고, 현재의 가정 상황과 차량 매각 등 구체적인 재범 방지 대책을 제시하여 실형을 면하고 집행유예를 선고받았습니다."
-            }
-        ],
-        "content_items": [],
-        "phone": "010-1234-5678",
-        "homepage": "https://macdee.co.kr",
-        "kakao_id": "won_lawyer",
-        "verified": True,
-        "imageUrl": "/lawyers/lawyer_male_1_1770727915967.png",
-        "bgRemoveStatus": "done",
-        "gender": "Male",
-        "tagline": "의뢰인의 편에서 끝까지 싸우는 든든한 조력자, 김원영입니다.",
-        "introduction": (
-            "안녕하세요. 법무법인 맥디의 파트너 변호사 김원영입니다.\n\n"
-            "지난 15년간 형사 사건을 전담하며 수많은 승소 사례를 쌓아왔습니다. "
-            "억울한 혐의를 벗는 것부터, 최선의 양형 결과를 이끌어내는 것까지 "
-            "의뢰인의 상황에 맞는 최적의 법률 솔루션을 제공합니다.\n\n"
-            "언제든 편하게 상담 문의 주세요."
-        ),
-        # --- Custom Blog Settings ---
-        # --- 테스트 계정: 평생 무료 구독 ---
-        "is_subscribed": True,
-        "is_founder": True,
-        "subscription_plan": "lifetime_free",
-        "trial_ends_at": None,
-        "billing_key": None,
-        # --- Custom Blog Settings ---
-        "blog_theme": {
-            "primaryColor": "#0F172A",
-            "secondaryColor": "#E2E8F0", 
-            "accentColor": "#3B82F6"
-        },
-        "blog_content": {
-            "hero_description": "의뢰인의 삶을 지키는 법률 서비스,<br/><strong>김원영</strong>이 함께하겠습니다.",
-            "consultation_title": "무료 법률 상담",
-            "consultation_message": "복잡한 법률 문제,<br/>전문가와 직접 이야기하세요."
-        }
-    }
-    # Check if test user exists in loaded/generated list
-    # Force update/insert to ensure latest data (password, etc.) but PRESERVE content
-    existing_others = [l for l in lawyers if l["id"] != kim_won_young["id"]]
-    existing_match = next((l for l in lawyers if l["id"] == kim_won_young["id"]), None)
-    
-    if existing_match:
-        print(f"Preserving data for {kim_won_young['id']}...")
-        kim_won_young["cases"] = existing_match.get("cases", [])
-        kim_won_young["content_items"] = existing_match.get("content_items", [])
-        
-    print(f"Injecting/Updating test user {kim_won_young['id']}...")
-    existing_others.insert(0, kim_won_young) # Add to top
-    lawyers = existing_others
-    save_lawyers_db(lawyers) # Save updated DB
-        
+            print(f"Failed to load DB: {e}. Starting fresh.")
+
+    # 3. 데이터가 없으면 시드 유저만 생성
+    print("📋 DB 없음 → 시드 유저(김원영)만 생성")
+    lawyers = [_KIM_WON_YOUNG_SEED.copy()]
+    save_lawyers_db(lawyers)
     return lawyers
 
 def save_lawyers_db(db):

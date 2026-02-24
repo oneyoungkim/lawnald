@@ -1,8 +1,8 @@
 import sys, json, os
 sys.path.insert(0, 'backend')
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # type: ignore
 load_dotenv(os.path.join('backend', '.env'))
-from supabase_client import get_supabase
+from supabase_client import get_supabase  # type: ignore
 
 sb = get_supabase()
 result = sb.table('lawyers').select('*').eq('id', 'welder49264@naver.com').execute()

@@ -1,8 +1,8 @@
-from openai import OpenAI
+from openai import OpenAI  # type: ignore
 import json
 import os
 from typing import Dict, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel  # type: ignore
 
 # Initialize OpenAI client
 api_key = os.environ.get("OPENAI_API_KEY")
@@ -141,7 +141,7 @@ def analyze_judgment(text: str) -> Dict:
             model="o1",
             messages=[
                 {"role": "developer", "content": system_prompt},
-                {"role": "user", "content": text[:15000]}
+                {"role": "user", "content": text[:15000]}  # type: ignore
             ],
             response_format={"type": "json_object"},
         )

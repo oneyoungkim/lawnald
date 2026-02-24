@@ -33,7 +33,7 @@ def get_supabase():
     try:
         from supabase import create_client  # type: ignore
         _supabase_client = create_client(url, key)
-        print(f"✅ Supabase 연결 성공: {url[:40]}...")
+        print(f"✅ Supabase 연결 성공: {url[:40]}...")  # type: ignore
         return _supabase_client
     except Exception as e:
         print(f"❌ Supabase 연결 실패: {e} → JSON 파일 모드로 폴백")
