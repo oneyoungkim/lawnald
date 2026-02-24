@@ -73,7 +73,7 @@ def _upsert_to_supabase(post: dict) -> bool:
             "category": post.get("category", "insights"),
             "cover_image": post.get("cover_image"),
             "featured_lawyer_id": post.get("featured_lawyer_id"),
-            "tags": json.dumps(post.get("tags", []), ensure_ascii=False),
+            "tags": post.get("tags", []),
             "is_published": post.get("is_published", True),
             "author": post.get("author", "로날드 에디터"),
             "author_image": post.get("author_image", "/logo.png"),
