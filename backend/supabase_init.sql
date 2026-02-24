@@ -147,3 +147,17 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
 
 ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "chats_all" ON chat_sessions USING (true) WITH CHECK (true);
+
+-- ============================================
+-- 의뢰인 계정 테이블
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS clients (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  data JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "clients_all" ON clients USING (true) WITH CHECK (true);
