@@ -79,7 +79,7 @@ def get_signed_url(bucket: str, path: str, expires_in: int = 3600) -> str:
 
 
 # Private 버킷 목록 — 여기 있는 버킷은 signed URL 사용
-PRIVATE_BUCKETS = {"licenses", "cases"}
+PRIVATE_BUCKETS = {"cases"}
 
 
 def upload_and_get_url(bucket: str, path: str, file_bytes: bytes, content_type: str = "application/octet-stream") -> str:

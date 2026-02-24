@@ -534,23 +534,36 @@ async def signup_lawyer(
     if licenseImage.content_type and not licenseImage.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="License file must be an image")
 
-    # Save License Image (Vercel: must use /tmp)
-    import shutil as _shutil
-    upload_dir = "/tmp/uploads/licenses"
-    os.makedirs(upload_dir, exist_ok=True)
-    
+    # Save License Image → Supabase Storage (persistent)
     file_ext = os.path.splitext(licenseImage.filename or "upload.png")[1] or ".png"
     filename = f"{email}_license{file_ext}"
-    file_path = os.path.join(upload_dir, filename)
     
+    license_bytes = await licenseImage.read()
+    license_url = ""
+    
+    # Try Supabase Storage first
     try:
-        with open(file_path, "wb") as buffer:
-            _shutil.copyfileobj(licenseImage.file, buffer)
+        from storage_utils import upload_and_get_url  # type: ignore
+        sb_url = upload_and_get_url("licenses", filename, license_bytes, licenseImage.content_type or "image/png")
+        if sb_url:
+            license_url = sb_url
+            print(f"✅ 자격증 이미지 Supabase 업로드: {license_url}")
     except Exception as e:
-        print(f"Error saving license image: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save license image")
+        print(f"⚠️ Supabase Storage 실패: {e}")
     
-    license_url = f"/uploads/licenses/{filename}"
+    # Fallback: save to /tmp
+    if not license_url:
+        import shutil as _shutil
+        upload_dir = "/tmp/uploads/licenses"
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, filename)
+        try:
+            with open(file_path, "wb") as buffer:
+                buffer.write(license_bytes)
+        except Exception as e:
+            print(f"Error saving license image: {e}")
+            raise HTTPException(status_code=500, detail="Failed to save license image")
+        license_url = f"/uploads/licenses/{filename}"
 
     new_lawyer = {
         "id": email,
@@ -1635,23 +1648,20 @@ async def upload_lawyer_photo(lawyer_id: str, file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
 
-    # 3. Save original
+    # 3. Save original — now uploads to Supabase Storage
     filename = f"{lawyer_id}_{file.filename}"
-    original_path = await image_utils.save_upload_file(file, filename)
+    photo_url = await image_utils.save_upload_file(file, filename)
     
-    # Update DB status - SKIP Background Removal as per user request
-    # Just use the original image for both fields
-    full_url = f"http://localhost:8000/static/images/original/{filename}"
-    
-    lawyer["imageUrl"] = full_url
-    lawyer["cutoutImageUrl"] = full_url # Use original as cutout
+    # Update DB — use Supabase Storage URL (persists across deployments)
+    lawyer["imageUrl"] = photo_url
+    lawyer["cutoutImageUrl"] = photo_url  # Use original as cutout
     lawyer["bgRemoveStatus"] = "skipped"
     
     save_db()
     
     return {
-        "message": "Photo uploaded successfully (Background removal skipped)", 
-        "cutoutImageUrl": full_url,
+        "message": "Photo uploaded successfully", 
+        "cutoutImageUrl": photo_url,
         "status": "processed"
     }
 
