@@ -56,3 +56,23 @@ CREATE POLICY "Allow all select" ON admin_blog_posts FOR SELECT USING (true);
 CREATE POLICY "Allow all insert" ON admin_blog_posts FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow all update" ON admin_blog_posts FOR UPDATE USING (true);
 CREATE POLICY "Allow all delete" ON admin_blog_posts FOR DELETE USING (true);
+
+-- ============================================
+-- 사이트 통계 테이블 (일별 집계)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS site_stats (
+  date TEXT PRIMARY KEY,
+  visitors INTEGER DEFAULT 0,
+  page_views INTEGER DEFAULT 0,
+  unique_ips JSONB DEFAULT '[]',
+  avg_duration_ms REAL DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE site_stats ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "stats_select" ON site_stats FOR SELECT USING (true);
+CREATE POLICY "stats_insert" ON site_stats FOR INSERT WITH CHECK (true);
+CREATE POLICY "stats_update" ON site_stats FOR UPDATE USING (true);
+CREATE POLICY "stats_delete" ON site_stats FOR DELETE USING (true);

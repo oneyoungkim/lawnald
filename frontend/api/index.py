@@ -47,47 +47,89 @@ from starlette.middleware.base import BaseHTTPMiddleware  # type: ignore
 from starlette.requests import Request as StarletteRequest  # type: ignore
 import time
 
-# --- File-Persistent Daily Stats ---
-STATS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stats_history.json")
+# --- Supabase-Persistent Daily Stats ---
 
-def _load_stats_history():
+def _get_stats_sb():
+    """Supabase 클라이언트 반환"""
     try:
-        if os.path.exists(STATS_FILE):
-            with open(STATS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+        from supabase_client import get_supabase  # type: ignore
+        return get_supabase()
     except Exception:
-        pass
+        return None
+
+def _load_stats_from_supabase(date_str: str) -> dict:
+    """Supabase에서 특정 날짜의 통계 로드"""
+    sb = _get_stats_sb()
+    if sb is None:
+        return {}
+    try:
+        res = sb.table("site_stats").select("*").eq("date", date_str).execute()
+        if res.data and len(res.data) > 0:
+            row = res.data[0]
+            return {
+                "visitors": row.get("visitors", 0),
+                "unique_ips_list": row.get("unique_ips", []),
+                "page_views": row.get("page_views", 0),
+                "avg_duration_ms": row.get("avg_duration_ms", 0),
+            }
+    except Exception as e:
+        print(f"⚠️ Supabase 통계 로드 실패: {e}")
     return {}
 
-def _save_stats_history(history):
+def _load_all_stats_dates() -> list:
+    """Supabase에서 통계가 있는 날짜 목록 로드"""
+    sb = _get_stats_sb()
+    if sb is None:
+        return []
     try:
-        with open(STATS_FILE, "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=2)
+        res = sb.table("site_stats").select("date").order("date", desc=True).limit(30).execute()
+        return [r["date"] for r in (res.data or [])]
     except Exception:
-        pass
+        return []
 
-def _flush_today_to_file():
-    history = _load_stats_history()
+def _flush_today_to_supabase():
+    """오늘 통계를 Supabase에 저장 (upsert)"""
+    sb = _get_stats_sb()
+    if sb is None:
+        return
+
     today = _visitor_data["last_reset"]
-    history[today] = {  # type: ignore
-        "visitors": len(_visitor_data["unique_ips"]),
-        "unique_ips_list": list(_visitor_data["unique_ips"]),
-        "page_views": _visitor_data["page_views"],
-        "request_times": _visitor_data["request_times"][-200:],  # Keep last 200  # type: ignore
-    }
-    _save_stats_history(history)
+    unique_ips_list = list(_visitor_data["unique_ips"])
+    page_views = _visitor_data["page_views"]
+    times = _visitor_data["request_times"]
+    avg_ms = (sum(times) / len(times)) if times else 0  # type: ignore
 
-# Restore today's data from file on startup
+    try:
+        # 기존 데이터 병합 — 여러 서버리스 인스턴스가 동시에 기록할 수 있으므로
+        existing = _load_stats_from_supabase(today)
+        existing_ips = set(existing.get("unique_ips_list", []))
+        merged_ips = existing_ips | set(unique_ips_list)
+
+        # page_views: 기존 값과 현재 값 중 큰 값 사용 (덮어쓰기 방지)
+        merged_pv = max(existing.get("page_views", 0), page_views)
+
+        sb.table("site_stats").upsert({
+            "date": today,
+            "visitors": len(merged_ips),
+            "page_views": merged_pv,
+            "unique_ips": list(merged_ips),
+            "avg_duration_ms": round(avg_ms, 1),
+            "updated_at": datetime.now().isoformat(),
+        }, on_conflict="date").execute()
+    except Exception as e:
+        print(f"⚠️ Supabase 통계 저장 실패: {e}")
+
+# Restore today's data from Supabase on startup
 _today_str = datetime.now().strftime("%Y-%m-%d")
-_saved = _load_stats_history().get(_today_str, {})
+_saved = _load_stats_from_supabase(_today_str)
 
 _visitor_data = {
     "unique_ips": set(_saved.get("unique_ips_list", [])),
     "page_views": _saved.get("page_views", 0),  # type: ignore
-    "request_times": _saved.get("request_times", []),  # type: ignore
+    "request_times": [],
     "last_reset": _today_str,
 }
-print(f"📊 통계 복원: {_today_str} — 방문자 {len(_visitor_data['unique_ips'])}명, 페이지뷰 {_visitor_data['page_views']}회")
+print(f"📊 통계 복원 (Supabase): {_today_str} — 방문자 {len(_visitor_data['unique_ips'])}명, 페이지뷰 {_visitor_data['page_views']}회")
 
 _flush_counter = 0
 
@@ -95,7 +137,7 @@ def _reset_if_new_day():
     global _flush_counter
     today = datetime.now().strftime("%Y-%m-%d")
     if _visitor_data["last_reset"] != today:
-        _flush_today_to_file()
+        _flush_today_to_supabase()
         _visitor_data["unique_ips"] = set()
         _visitor_data["page_views"] = 0
         _visitor_data["request_times"] = []
@@ -126,8 +168,8 @@ class VisitorTrackingMiddleware(BaseHTTPMiddleware):
                 _visitor_data["request_times"] = _visitor_data["request_times"][-500:]  # type: ignore
         
         _flush_counter += 1  # type: ignore
-        if _flush_counter >= 50:
-            _flush_today_to_file()
+        if _flush_counter >= 20:
+            _flush_today_to_supabase()
             _flush_counter = 0
         
         return response
@@ -140,24 +182,24 @@ app.add_middleware(VisitorTrackingMiddleware)
 def get_admin_stats(date: Optional[str] = None):
     """관리자 대시보드 통계 (일별)"""
     _reset_if_new_day()
-    _flush_today_to_file()
+    _flush_today_to_supabase()
     
     today_str = datetime.now().strftime("%Y-%m-%d")
     query_date = date or today_str
     is_today = (query_date == today_str)
     
-    history = _load_stats_history()
-    available_dates = sorted(history.keys(), reverse=True)
+    available_dates = _load_all_stats_dates()
     
     if is_today:
         visitors = len(_visitor_data["unique_ips"])
         page_views = _visitor_data["page_views"]
         times = _visitor_data["request_times"]
     else:
-        day_data = history.get(query_date, {})
+        day_data = _load_stats_from_supabase(query_date)
         visitors = day_data.get("visitors", 0)  # type: ignore
         page_views = day_data.get("page_views", 0)  # type: ignore
-        times = day_data.get("request_times", [])  # type: ignore
+        avg_saved = day_data.get("avg_duration_ms", 0)  # type: ignore
+        times = [avg_saved] if avg_saved else []
     
     # Average duration
     if times and len(times) > 0:
@@ -188,8 +230,8 @@ def get_admin_stats(date: Optional[str] = None):
 
 @app.get("/api/admin/stats/dates")
 def get_stats_dates():
-    history = _load_stats_history()
-    return {"dates": sorted(history.keys(), reverse=True)}
+    dates = _load_all_stats_dates()
+    return {"dates": dates}
 
 @app.get("/api/admin/crawler/today-count")
 def get_crawler_today_count():
