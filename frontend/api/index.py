@@ -430,9 +430,12 @@ class LoginRequest(BaseModel):
 _seed_clients = [
     {"id": "client1", "email": "client@example.com", "password": "password", "name": "김철수"}
 ]
-_sb_clients = sb_load_all("clients")
-CLIENTS_DB = _sb_clients if _sb_clients else _seed_clients[:]
-print(f"📊 의뢰인 복원 (Supabase): {len(CLIENTS_DB)}명")
+try:
+    _sb_clients = sb_load_all("clients")
+    CLIENTS_DB = _sb_clients if _sb_clients else _seed_clients[:]
+except Exception:
+    CLIENTS_DB = _seed_clients[:]
+print(f"📊 의뢰인 복원: {len(CLIENTS_DB)}명")
 
 class ClientRegisterRequest(BaseModel):
     email: str
