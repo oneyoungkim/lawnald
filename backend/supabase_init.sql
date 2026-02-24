@@ -24,3 +24,35 @@ CREATE POLICY "Allow all select" ON lawyers FOR SELECT USING (true);
 CREATE POLICY "Allow all insert" ON lawyers FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow all update" ON lawyers FOR UPDATE USING (true);
 CREATE POLICY "Allow all delete" ON lawyers FOR DELETE USING (true);
+
+-- ============================================
+-- 관리자 블로그 테이블
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS admin_blog_posts (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  summary TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'insights',
+  cover_image TEXT,
+  featured_lawyer_id TEXT,
+  tags JSONB DEFAULT '[]',
+  is_published BOOLEAN DEFAULT TRUE,
+  author TEXT DEFAULT '로날드 에디터',
+  author_image TEXT DEFAULT '/logo.png',
+  post_type TEXT DEFAULT 'ADMIN',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_blog_published ON admin_blog_posts(is_published);
+CREATE INDEX IF NOT EXISTS idx_blog_category ON admin_blog_posts(category);
+CREATE INDEX IF NOT EXISTS idx_blog_created ON admin_blog_posts(created_at DESC);
+
+ALTER TABLE admin_blog_posts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow all select" ON admin_blog_posts FOR SELECT USING (true);
+CREATE POLICY "Allow all insert" ON admin_blog_posts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow all update" ON admin_blog_posts FOR UPDATE USING (true);
+CREATE POLICY "Allow all delete" ON admin_blog_posts FOR DELETE USING (true);

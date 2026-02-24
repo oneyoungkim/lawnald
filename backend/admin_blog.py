@@ -1,7 +1,7 @@
 """
 Lawnald Admin Blog Module
 - 관리자 전용 공식 블로그 CRUD
-- AdminPost 모델 (매거진과 분리)
+- Supabase 영구 저장 (JSON 파일 폴백)
 - 관리자 인증 미들웨어
 """
 
@@ -15,18 +15,127 @@ from fastapi import APIRouter, HTTPException, Header  # type: ignore
 
 router = APIRouter(prefix="/api/admin/blog", tags=["admin-blog"])
 
-# --- Data Storage ---
+# --- Supabase 연동 ---
+TABLE_NAME = "admin_blog_posts"
+
+def _get_sb():
+    """Supabase 클라이언트 반환 (None이면 JSON 폴백)"""
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        return get_supabase()
+    except Exception:
+        return None
+
+
+def _load_from_supabase():
+    """Supabase에서 블로그 글 전체 로드"""
+    sb = _get_sb()
+    if sb is None:
+        return None
+    try:
+        res = sb.table(TABLE_NAME).select("*").order("created_at", desc=True).execute()
+        posts = []
+        for row in res.data or []:
+            post = {
+                "id": row["id"],
+                "title": row.get("title", ""),
+                "content": row.get("content", ""),
+                "summary": row.get("summary", ""),
+                "category": row.get("category", "insights"),
+                "cover_image": row.get("cover_image"),
+                "featured_lawyer_id": row.get("featured_lawyer_id"),
+                "tags": row.get("tags", []),
+                "is_published": row.get("is_published", True),
+                "author": row.get("author", "로날드 에디터"),
+                "author_image": row.get("author_image", "/logo.png"),
+                "post_type": row.get("post_type", "ADMIN"),
+                "created_at": row.get("created_at", ""),
+                "updated_at": row.get("updated_at", ""),
+            }
+            posts.append(post)
+        return posts
+    except Exception as e:
+        print(f"⚠️ Supabase 블로그 로드 실패: {e}")
+        return None
+
+
+def _upsert_to_supabase(post: dict) -> bool:
+    """Supabase에 블로그 글 저장/업데이트"""
+    sb = _get_sb()
+    if sb is None:
+        return False
+    try:
+        row = {
+            "id": post["id"],
+            "title": post.get("title", ""),
+            "content": post.get("content", ""),
+            "summary": post.get("summary", ""),
+            "category": post.get("category", "insights"),
+            "cover_image": post.get("cover_image"),
+            "featured_lawyer_id": post.get("featured_lawyer_id"),
+            "tags": json.dumps(post.get("tags", []), ensure_ascii=False),
+            "is_published": post.get("is_published", True),
+            "author": post.get("author", "로날드 에디터"),
+            "author_image": post.get("author_image", "/logo.png"),
+            "post_type": post.get("post_type", "ADMIN"),
+            "created_at": post.get("created_at", datetime.now().isoformat()),
+            "updated_at": post.get("updated_at", datetime.now().isoformat()),
+        }
+        sb.table(TABLE_NAME).upsert(row, on_conflict="id").execute()
+        return True
+    except Exception as e:
+        print(f"⚠️ Supabase 블로그 저장 실패: {e}")
+        return False
+
+
+def _delete_from_supabase(post_id: str) -> bool:
+    """Supabase에서 블로그 글 삭제"""
+    sb = _get_sb()
+    if sb is None:
+        return False
+    try:
+        sb.table(TABLE_NAME).delete().eq("id", post_id).execute()
+        return True
+    except Exception as e:
+        print(f"⚠️ Supabase 블로그 삭제 실패: {e}")
+        return False
+
+
+# --- JSON 파일 폴백 ---
 ADMIN_BLOG_FILE = os.path.join("/tmp" if os.path.exists("/tmp") else ".", "admin_blog_db.json")
 
-def load_blog_db() -> List[dict]:
+def _load_from_json() -> List[dict]:
     if os.path.exists(ADMIN_BLOG_FILE):
-        with open(ADMIN_BLOG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(ADMIN_BLOG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
     return []
 
+def _save_to_json(db: list):
+    try:
+        with open(ADMIN_BLOG_FILE, "w", encoding="utf-8") as f:
+            json.dump(db, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ JSON 저장 실패: {e}")
+
+
+# --- 초기 로드 ---
+def load_blog_db() -> List[dict]:
+    # Supabase 우선
+    posts = _load_from_supabase()
+    if posts is not None:
+        print(f"✅ Supabase에서 블로그 글 {len(posts)}개 로드")
+        return posts
+    # JSON 폴백
+    posts = _load_from_json()
+    print(f"📁 JSON에서 블로그 글 {len(posts)}개 로드")
+    return posts
+
 def save_blog_db(db: list):
-    with open(ADMIN_BLOG_FILE, "w", encoding="utf-8") as f:
-        json.dump(db, f, ensure_ascii=False, indent=2)
+    """전체 DB를 JSON에 저장 (폴백용)"""
+    _save_to_json(db)
 
 ADMIN_BLOG_DB = load_blog_db()
 
@@ -84,9 +193,9 @@ class AdminPostCreate(BaseModel):
     title: str
     content: str  # Markdown content
     summary: str
-    category: str = "insights"  # insights, lawyer-spotlight, legal-trends, platform-news
+    category: str = "insights"
     cover_image: Optional[str] = None
-    featured_lawyer_id: Optional[str] = None  # 소개할 변호사 ID
+    featured_lawyer_id: Optional[str] = None
     tags: List[str] = []
     is_published: bool = True
 
@@ -106,12 +215,14 @@ class AdminPostUpdate(BaseModel):
 @router.get("/posts")
 async def list_posts(category: Optional[str] = None):
     """공개 블로그 글 목록"""
-    posts = [p for p in ADMIN_BLOG_DB if p.get("is_published", True)]
+    # 매번 Supabase에서 최신 데이터 로드 시도
+    fresh = _load_from_supabase()
+    posts = fresh if fresh is not None else ADMIN_BLOG_DB
+
+    posts = [p for p in posts if p.get("is_published", True)]
     if category:
         posts = [p for p in posts if p.get("category") == category]
-    # 최신순 정렬
     posts.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    # 본문 제외한 요약 리스트 반환
     return [{
         "id": p["id"],
         "title": p["title"],
@@ -128,11 +239,14 @@ async def list_posts(category: Optional[str] = None):
 @router.get("/posts/{post_id}")
 async def get_post(post_id: str):
     """공개 블로그 글 상세"""
-    post = next((p for p in ADMIN_BLOG_DB if p["id"] == post_id), None)
+    # Supabase에서 최신 데이터 시도
+    fresh = _load_from_supabase()
+    source = fresh if fresh is not None else ADMIN_BLOG_DB
+
+    post = next((p for p in source if p["id"] == post_id), None)
     if not post or not post.get("is_published", True):
         raise HTTPException(status_code=404, detail="글을 찾을 수 없습니다")
 
-    # featured_lawyer 정보 포함
     featured_lawyer = None
     if post.get("featured_lawyer_id"):  # type: ignore
         try:
@@ -180,6 +294,11 @@ async def create_post(post: AdminPostCreate, authorization: Optional[str] = Head
         "updated_at": datetime.now().isoformat(),
     }
 
+    # Supabase에 저장
+    if not _upsert_to_supabase(new_post):
+        print("⚠️ Supabase 저장 실패 → JSON 폴백")
+
+    # 인메모리 + JSON 동기화
     ADMIN_BLOG_DB.append(new_post)
     save_blog_db(ADMIN_BLOG_DB)
     return {"message": "글이 등록되었습니다", "id": new_post["id"]}
@@ -198,6 +317,10 @@ async def update_post(post_id: str, post: AdminPostUpdate, authorization: Option
     existing.update(update_data)
     existing["updated_at"] = datetime.now().isoformat()
 
+    # Supabase에 저장
+    if not _upsert_to_supabase(existing):
+        print("⚠️ Supabase 업데이트 실패 → JSON 폴백")
+
     save_blog_db(ADMIN_BLOG_DB)
     return {"message": "글이 수정되었습니다"}
 
@@ -214,6 +337,9 @@ async def delete_post(post_id: str, authorization: Optional[str] = Header(None))
     if len(ADMIN_BLOG_DB) == before:
         raise HTTPException(status_code=404, detail="글을 찾을 수 없습니다")
 
+    # Supabase에서 삭제
+    _delete_from_supabase(post_id)
+
     save_blog_db(ADMIN_BLOG_DB)
     return {"message": "글이 삭제되었습니다"}
 
@@ -222,5 +348,8 @@ async def delete_post(post_id: str, authorization: Optional[str] = Header(None))
 async def list_all_posts(authorization: Optional[str] = Header(None)):
     """관리자: 모든 글 목록 (비공개 포함)"""
     verify_admin(authorization)
-    posts = sorted(ADMIN_BLOG_DB, key=lambda x: x.get("created_at", ""), reverse=True)
+    # Supabase에서 최신 데이터
+    fresh = _load_from_supabase()
+    source = fresh if fresh is not None else ADMIN_BLOG_DB
+    posts = sorted(source, key=lambda x: x.get("created_at", ""), reverse=True)
     return posts
