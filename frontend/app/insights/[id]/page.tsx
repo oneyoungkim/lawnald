@@ -1,11 +1,9 @@
-// Server component: resolve API base — must be absolute URL for SSR fetch
-const API_BASE = process.env.NEXT_PUBLIC_API_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
-    || "http://localhost:3000";
-import type { Metadata } from "next";
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
-import Link from "next/link";
 import AdminPostActions from "./AdminPostActions";
 
 interface FeaturedLawyer {
@@ -42,41 +40,36 @@ const CATEGORY_LABELS: Record<string, string> = {
     "platform-news": "플랫폼 소식",
 };
 
-async function getPost(id: string): Promise<PostDetail | null> {
-    try {
-        const res = await fetch(`${API_BASE}/api/admin/blog/posts/${id}`, {
-            cache: "no-store",
+export default function InsightDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const [post, setPost] = useState<PostDetail | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
+
+    useEffect(() => {
+        params.then(({ id }) => {
+            fetch(`/api/admin/blog/posts/${id}`, { cache: "no-store" })
+                .then((r) => {
+                    if (!r.ok) { setNotFound(true); return null; }
+                    return r.json();
+                })
+                .then((data) => { if (data) setPost(data); })
+                .catch(() => setNotFound(true))
+                .finally(() => setLoading(false));
         });
-        if (!res.ok) return null;
-        return res.json();
-    } catch {
-        return null;
+    }, [params]);
+
+    if (loading) {
+        return (
+            <main className="min-h-screen bg-[#070b14] text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-white/30 text-sm">불러오는 중...</p>
+                </div>
+            </main>
+        );
     }
-}
 
-type Props = { params: Promise<{ id: string }> };
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const { id } = await params;
-    const post = await getPost(id);
-    if (!post) return { title: "Not Found" };
-    return {
-        title: `${post.title} | Lawnald 인사이트`,
-        description: post.summary,
-        openGraph: {
-            title: post.title,
-            description: post.summary,
-            type: "article",
-            ...(post.cover_image ? { images: [post.cover_image] } : {}),
-        },
-    };
-}
-
-export default async function InsightDetailPage({ params }: Props) {
-    const { id } = await params;
-    const post = await getPost(id);
-
-    if (!post) {
+    if (notFound || !post) {
         return (
             <main className="min-h-screen bg-[#070b14] text-white flex items-center justify-center">
                 <div className="text-center">
@@ -236,7 +229,6 @@ export default async function InsightDetailPage({ params }: Props) {
                         </div>
 
                         <div className="flex flex-col md:flex-row items-center gap-8">
-                            {/* Lawyer Photo */}
                             <div className="w-28 h-28 rounded-[20px] bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
                                 {lawyer.cutoutImageUrl || lawyer.imageUrl ? (
                                     <img
@@ -251,7 +243,6 @@ export default async function InsightDetailPage({ params }: Props) {
                                 )}
                             </div>
 
-                            {/* Lawyer Info */}
                             <div className="flex-1 text-center md:text-left">
                                 <h3 className="text-xl font-bold mb-1">{lawyer.name} 변호사</h3>
                                 <p className="text-sm text-white/40 mb-2">{lawyer.firm}</p>
@@ -270,7 +261,6 @@ export default async function InsightDetailPage({ params }: Props) {
                             </div>
                         </div>
 
-                        {/* CTA Buttons */}
                         <div className="flex flex-col sm:flex-row gap-3 mt-6">
                             <Link
                                 href={`/lawyer/${lawyer.id}`}

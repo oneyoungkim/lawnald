@@ -1,18 +1,7 @@
-import type { Metadata } from "next";
+"use client";
 
-// Server component: resolve API base — must be absolute URL for SSR fetch
-const API_BASE = process.env.NEXT_PUBLIC_API_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
-    || "http://localhost:3000";
-
-export const metadata: Metadata = {
-    title: "공식 인사이트 | Lawnald",
-    description: "로날드가 엄선한 법률 인사이트, 우수 변호사 소개, 플랫폼 소식을 확인하세요.",
-    openGraph: {
-        title: "공식 인사이트 | Lawnald",
-        description: "로날드가 엄선한 법률 인사이트와 우수 변호사 소개",
-    },
-};
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface BlogPost {
     id: string;
@@ -38,20 +27,23 @@ const CATEGORY_COLORS: Record<string, string> = {
     "platform-news": "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
 
-async function getPosts(): Promise<BlogPost[]> {
-    try {
-        const res = await fetch(`${API_BASE}/api/admin/blog/posts`, {
-            cache: "no-store",
-        });
-        if (!res.ok) return [];
-        return res.json();
-    } catch {
-        return [];
-    }
-}
+export default function InsightsPage() {
+    const [posts, setPosts] = useState<BlogPost[]>([]);
+    const [loading, setLoading] = useState(true);
 
-export default async function InsightsPage() {
-    const posts = await getPosts();
+    useEffect(() => {
+        fetch("/api/admin/blog/posts")
+            .then((r) => {
+                if (!r.ok) throw new Error("fetch failed");
+                return r.json();
+            })
+            .then((data) => setPosts(data))
+            .catch((err) => {
+                console.error("Failed to load blog posts:", err);
+                setPosts([]);
+            })
+            .finally(() => setLoading(false));
+    }, []);
 
     return (
         <main className="min-h-screen bg-[#070b14] text-white font-sans">
@@ -79,7 +71,12 @@ export default async function InsightsPage() {
 
             {/* Posts Grid */}
             <section className="max-w-5xl mx-auto px-6 pb-20">
-                {posts.length === 0 ? (
+                {loading ? (
+                    <div className="text-center py-20">
+                        <div className="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-white/30 text-sm">불러오는 중...</p>
+                    </div>
+                ) : posts.length === 0 ? (
                     <div className="text-center py-20">
                         <div className="text-6xl mb-4">📝</div>
                         <p className="text-white/30 text-sm">아직 등록된 글이 없습니다</p>
