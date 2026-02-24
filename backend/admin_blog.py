@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException, Header  # type: ignore
 router = APIRouter(prefix="/api/admin/blog", tags=["admin-blog"])
 
 # --- Data Storage ---
-ADMIN_BLOG_FILE = "admin_blog_db.json"
+ADMIN_BLOG_FILE = os.path.join("/tmp" if os.path.exists("/tmp") else ".", "admin_blog_db.json")
 
 def load_blog_db() -> List[dict]:
     if os.path.exists(ADMIN_BLOG_FILE):
@@ -40,7 +40,7 @@ ADMIN_CREDENTIALS = {
 
 def _generate_token(username: str) -> str:
     """간단한 토큰 생성 (salt는 환경변수에서 로드)"""
-    salt = os.getenv("ADMIN_TOKEN_SALT", "default-salt")
+    salt = os.getenv("ADMIN_TOKEN_SALT", os.getenv("JWT_SECRET_KEY", "default-salt"))
     raw = f"{username}:{salt}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
