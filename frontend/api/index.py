@@ -420,6 +420,25 @@ except:
 
 print(f"Serverless function loaded. CWD={os.getcwd()}")
 
+@app.get("/api/debug/db-status")
+def debug_db_status():
+    """Debug: Supabase 연결 상태 및 LAWYERS_DB 현황"""
+    info = {
+        "in_memory_count": len(LAWYERS_DB),
+        "in_memory_ids": [l.get("id") for l in LAWYERS_DB],
+    }
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        sb = get_supabase()
+        info["supabase_connected"] = sb is not None
+        if sb:
+            res = sb.table("lawyers").select("id, is_mock, verified").execute()
+            info["supabase_total"] = len(res.data)
+            info["supabase_real"] = [r["id"] for r in res.data if not r.get("is_mock")]
+    except Exception as e:
+        info["supabase_error"] = str(e)
+    return info
+
 # --- Auth System ---
 
 class LoginRequest(BaseModel):
