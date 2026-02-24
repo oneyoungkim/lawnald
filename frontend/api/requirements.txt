@@ -10,3 +10,4 @@ pdfplumber
 beautifulsoup4
 python-dotenv
 requests
+supabase
