@@ -142,6 +142,62 @@ export default function AdminBlogWritePage() {
     const [preview, setPreview] = useState(false);
     const [loading, setLoading] = useState(false);
     const [seoOpen, setSeoOpen] = useState(true);
+    const [uploading, setUploading] = useState(false);
+
+    // ── Clipboard image paste handler ──
+    const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.type.startsWith("image/")) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (!file) return;
+
+                const token = localStorage.getItem("admin_token");
+                if (!token) { alert("관리자 로그인이 필요합니다"); return; }
+
+                const textarea = document.getElementById("editor") as HTMLTextAreaElement;
+                const cursorPos = textarea?.selectionStart ?? content.length;
+
+                // Insert placeholder
+                const placeholder = `\n![업로드 중...](uploading)\n`;
+                const before = content.substring(0, cursorPos);
+                const after = content.substring(cursorPos);
+                setContent(before + placeholder + after);
+                setUploading(true);
+
+                try {
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    const res = await fetch(`${API_BASE}/api/admin/blog/upload-image`, {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: formData,
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        const imageMarkdown = `\n![이미지](${data.url})\n`;
+                        setContent((prev) => prev.replace(placeholder, imageMarkdown));
+                    } else {
+                        const err = await res.json().catch(() => ({ detail: "업로드 실패" }));
+                        alert(err.detail || "이미지 업로드 실패");
+                        setContent((prev) => prev.replace(placeholder, ""));
+                    }
+                } catch {
+                    alert("이미지 업로드 중 오류 발생");
+                    setContent((prev) => prev.replace(placeholder, ""));
+                } finally {
+                    setUploading(false);
+                }
+                return;
+            }
+        }
+    };
 
     // 수정 모드: 기존 글 데이터 로드
     useEffect(() => {
@@ -329,13 +385,24 @@ export default function AdminBlogWritePage() {
                                 <ReactMarkdown>{content}</ReactMarkdown>
                             </div>
                         ) : (
-                            <textarea
-                                id="editor"
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                placeholder={"Markdown으로 본문을 작성하세요...\n\n## 소제목\n본문 내용을 여기에 작성합니다.\n\n**강조할 내용**은 볼드 처리합니다.\n\n> 인용문도 사용할 수 있습니다."}
-                                className="w-full min-h-[500px] bg-white/5 rounded-2xl p-6 border border-white/10 outline-none text-sm leading-relaxed placeholder-white/15 font-mono resize-y"
-                            />
+                            <div className="relative">
+                                <textarea
+                                    id="editor"
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                    onPaste={handlePaste}
+                                    placeholder={"Markdown으로 본문을 작성하세요...\n\n## 소제목\n본문 내용을 여기에 작성합니다.\n\n**강조할 내용**은 볼드 처리합니다.\n\n> 인용문도 사용할 수 있습니다.\n\n💡 이미지를 캡쳐 후 Ctrl+V로 바로 붙여넣기 가능!"}
+                                    className="w-full min-h-[500px] bg-white/5 rounded-2xl p-6 border border-white/10 outline-none text-sm leading-relaxed placeholder-white/15 font-mono resize-y"
+                                />
+                                {uploading && (
+                                    <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                                        <div className="flex items-center gap-3 bg-[#0d1527] px-6 py-4 rounded-2xl border border-white/10 shadow-xl">
+                                            <div className="w-5 h-5 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin" />
+                                            <span className="text-sm font-medium text-white/80">이미지 업로드 중...</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 

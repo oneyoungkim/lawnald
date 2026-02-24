@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel  # type: ignore
-from fastapi import APIRouter, HTTPException, Header  # type: ignore
+from fastapi import APIRouter, HTTPException, Header, UploadFile, File  # type: ignore
 
 router = APIRouter(prefix="/api/admin/blog", tags=["admin-blog"])
 
@@ -353,3 +353,46 @@ async def list_all_posts(authorization: Optional[str] = Header(None)):
     source = fresh if fresh is not None else ADMIN_BLOG_DB
     posts = sorted(source, key=lambda x: x.get("created_at", ""), reverse=True)
     return posts
+
+
+@router.post("/upload-image")
+async def upload_blog_image(
+    file: UploadFile = File(...),
+    authorization: Optional[str] = Header(None),
+):
+    """관리자: 블로그 이미지 업로드 (클립보드 붙여넣기용)"""
+    verify_admin(authorization)
+
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="이미지 파일만 업로드 가능합니다")
+
+    file_bytes = await file.read()
+    if len(file_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="5MB 이하의 이미지만 업로드 가능합니다")
+
+    # 고유 파일명 생성
+    ext_map = {"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp"}
+    ext = ext_map.get(file.content_type, ".png")
+    timestamp = int(datetime.now().timestamp() * 1000)
+    filename = f"blog_{timestamp}_{str(uuid.uuid4())[:6]}{ext}"  # type: ignore
+
+    # Supabase Storage 업로드 시도
+    try:
+        from storage_utils import upload_and_get_url  # type: ignore
+        public_url = upload_and_get_url("photos", f"blog/{filename}", file_bytes, file.content_type)
+        if public_url:
+            print(f"✅ 블로그 이미지 업로드: {public_url}")
+            return {"url": public_url, "filename": filename}
+    except Exception as e:
+        print(f"⚠️ Supabase Storage 실패: {e}")
+
+    # 폴백: /tmp에 저장
+    tmp_dir = "/tmp/uploads/blog"
+    os.makedirs(tmp_dir, exist_ok=True)
+    filepath = os.path.join(tmp_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(file_bytes)  # type: ignore
+
+    fallback_url = f"/uploads/blog/{filename}"
+    print(f"📁 블로그 이미지 로컬 저장: {fallback_url}")
+    return {"url": fallback_url, "filename": filename}
