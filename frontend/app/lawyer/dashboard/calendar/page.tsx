@@ -21,7 +21,7 @@ interface CalendarEvent {
     colorId?: string;
 }
 
-const GOOGLE_CLIENT_ID = "535513893786-poqbcj7sbjetv41i0n0mspu5fkmtgp78.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "1030277557352-gkm7ah5v5883a2huo166oqmr6cu16qjq.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/calendar";
 
 export default function CalendarPage() {
