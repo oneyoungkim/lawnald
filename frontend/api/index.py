@@ -728,6 +728,29 @@ def reject_lawyer(lawyer_id: str):
     save_lawyers_db(LAWYERS_DB)
     return {"message": f"{lawyer_name} 변호사의 가입이 반려되었습니다.", "lawyer_id": lawyer_id}
 
+@app.delete("/api/admin/lawyers/{lawyer_id}")
+def delete_lawyer(lawyer_id: str):
+    """변호사 완전 삭제"""
+    global LAWYERS_DB
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer not found")
+    
+    lawyer_name = lawyer["name"]
+    LAWYERS_DB = [l for l in LAWYERS_DB if l["id"] != lawyer_id]
+    
+    # Supabase에서도 삭제
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        sb = get_supabase()
+        if sb:
+            sb.table("lawyers").delete().eq("id", lawyer_id).execute()
+    except Exception:
+        pass
+    
+    save_lawyers_db(LAWYERS_DB)
+    return {"message": f"{lawyer_name} 변호사가 삭제되었습니다.", "lawyer_id": lawyer_id}
+
 # --- Batch Approval / Rejection ---
 
 class BatchLawyerRequest(BaseModel):

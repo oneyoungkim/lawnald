@@ -4,7 +4,7 @@ import { API_BASE } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon, PlusIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import { ArrowLeftIcon, PlusIcon, CheckIcon, XMarkIcon, TrashIcon } from "@heroicons/react/24/solid";
 
 interface Lawyer {
     id: string;
@@ -145,6 +145,22 @@ export default function AdminLawyersPage() {
         }
     };
 
+    const handleDelete = async (lawyerId: string, name: string) => {
+        if (!confirm(`⚠️ ${name} 변호사를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+        if (!confirm(`정말 삭제하시겠습니까? 최종 확인`)) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/lawyers/${lawyerId}`, { method: "DELETE" });
+            if (res.ok) {
+                alert(`${name} 변호사가 삭제되었습니다.`);
+                fetchLawyers();
+            } else {
+                alert("삭제 실패");
+            }
+        } catch (error) {
+            alert("서버 통신 오류");
+        }
+    };
+
     const filteredLawyers = lawyers.filter(l =>
         l.name.includes(searchTerm) || l.id.includes(searchTerm)
     );
@@ -193,8 +209,8 @@ export default function AdminLawyersPage() {
                     <button
                         onClick={() => setIncludeMock(!includeMock)}
                         className={`px-4 py-3 text-sm font-bold rounded-xl border transition-colors whitespace-nowrap ${includeMock
-                                ? "bg-purple-600 text-white border-purple-600"
-                                : "bg-white dark:bg-zinc-900 text-neutral-500 border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-800"
+                            ? "bg-purple-600 text-white border-purple-600"
+                            : "bg-white dark:bg-zinc-900 text-neutral-500 border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-800"
                             }`}
                     >
                         🤖 {includeMock ? "가상 변호사 포함 중" : "가상 변호사 보기"}
@@ -286,6 +302,13 @@ export default function AdminLawyersPage() {
                                         </button>
                                     </>
                                 )}
+                                <div className="w-px h-6 bg-neutral-200" />
+                                <button
+                                    onClick={() => handleDelete(lawyer.id, lawyer.name)}
+                                    className="px-3 py-1 bg-neutral-800 text-white text-xs font-bold rounded hover:bg-black flex items-center gap-1 shadow-sm"
+                                >
+                                    <TrashIcon className="w-3 h-3" /> 삭제
+                                </button>
                             </div>
                         </div>
                     ))}
