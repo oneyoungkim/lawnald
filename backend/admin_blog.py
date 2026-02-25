@@ -228,7 +228,8 @@ async def list_posts(category: Optional[str] = None):
     """공개 블로그 글 목록"""
     # 매번 Supabase에서 최신 데이터 로드 시도
     fresh = _load_from_supabase()
-    posts = fresh if fresh is not None else ADMIN_BLOG_DB
+    # Supabase 비어있으면 인메모리 데이터 사용
+    posts = fresh if (fresh is not None and len(fresh) > 0) else ADMIN_BLOG_DB
 
     posts = [p for p in posts if p.get("is_published", True)]
     if category:
@@ -252,7 +253,7 @@ async def get_post(post_id: str):
     """공개 블로그 글 상세"""
     # Supabase에서 최신 데이터 시도
     fresh = _load_from_supabase()
-    source = fresh if fresh is not None else ADMIN_BLOG_DB
+    source = fresh if (fresh is not None and len(fresh) > 0) else ADMIN_BLOG_DB
 
     post = next((p for p in source if p["id"] == post_id), None)
     if not post or not post.get("is_published", True):
