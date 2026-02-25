@@ -1284,6 +1284,157 @@ async def generate_document(data: DocGenerateRequest):
         raise HTTPException(status_code=500, detail=f"문서 생성 실패: {str(e)}")
 
 
+# --- AI Draft Generation (AI 초안 생성) ---
+
+class AIDraftRequest(BaseModel):
+    case_summary: str
+    doc_type: str = "brief"  # brief, complaint, answer
+    lawyer_id: Optional[str] = None
+    matter_id: Optional[str] = None
+    style_instructions: str = ""
+
+@app.post("/api/ai/draft")
+async def generate_ai_draft(data: AIDraftRequest):
+    """과거 승소사례를 참고하여 AI 초안을 생성합니다."""
+    
+    # 1. RAG로 유사 사례 검색
+    similar_cases = []
+    try:
+        from case_embeddings import search_similar_cases  # type: ignore
+        similar_cases = search_similar_cases(query=data.case_summary, top_k=3, threshold=0.4)
+    except Exception:
+        pass
+    
+    # 2. Matter 데이터 가져오기
+    matter_context = ""
+    if data.matter_id:
+        matter = next((m for m in MATTERS_DB if m["id"] == data.matter_id), None)
+        if matter:
+            matter_context = f"""
+[사건 정보]
+사건명: {matter.get('title', '')}
+사건번호: {matter.get('case_number', '')}
+법원: {matter.get('court', '')}
+의뢰인: {matter.get('client_name', '')}
+상대방: {matter.get('opponent_name', '')}
+"""
+    
+    # 3. 유사 사례 컨텍스트 구성
+    rag_context = ""
+    if similar_cases:
+        rag_context = "\n\n[참고 유사 사례]\n"
+        for i, case in enumerate(similar_cases[:3], 1):
+            rag_context += f"\n--- 사례 {i} (유사도: {case.get('similarity', 0):.0%}) ---\n"
+            rag_context += f"제목: {case.get('title', '')}\n"
+            rag_context += f"요약: {case.get('content_summary', '')}\n"
+            rag_context += f"태그: {case.get('ai_tags', '')}\n"
+    
+    doc_names = {"brief": "준비서면", "complaint": "소장", "answer": "답변서"}
+    doc_name = doc_names.get(data.doc_type, "법률 서면")
+    
+    prompt = f"""당신은 대한민국 15년차 전문 변호사입니다.
+아래 사건 내용과 유사 승소사례를 참고하여 [{doc_name}] 초안을 작성하세요.
+
+[사건 개요]
+{data.case_summary}
+
+{matter_context}
+{rag_context}
+
+{f'[변호사 스타일 지시]' + chr(10) + data.style_instructions if data.style_instructions else ''}
+
+[작성 규칙]
+1. 유사 승소사례의 논증 구조와 법적 논리를 참고하되, 현재 사건에 맞게 변형
+2. 실제 법원 제출 가능한 수준의 전문적 서면 작성
+3. 관련 법률 조항 및 판례 인용
+4. 체계적인 번호 매김 (제1항, 가, (1) 등)
+5. 청구 취지와 원인을 명확하게
+"""
+
+    try:
+        import openai  # type: ignore
+        client_ai = openai.OpenAI()
+        response = client_ai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "당신은 대한민국 전문 변호사로, 과거 승소 경험을 바탕으로 새 사건의 서면 초안을 작성합니다."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=4000,
+        )
+        content = response.choices[0].message.content  # type: ignore
+        return {
+            "draft": content,
+            "similar_cases_used": len(similar_cases),
+            "doc_type": data.doc_type,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"초안 생성 실패: {str(e)}")
+
+
+# --- E-Signature (전자서명) ---
+
+ESIGN_DB: list = []
+
+class ESignCreateRequest(BaseModel):
+    title: str  # 예: "수임계약서", "위임장"
+    content: str  # 서명할 문서 내용
+    signer_name: str
+    signer_email: str = ""
+    lawyer_name: str = ""
+
+class ESignSignRequest(BaseModel):
+    signer_name: str
+    signature_data: str = ""  # base64 서명 이미지 또는 텍스트
+
+@app.post("/api/esign/create")
+async def create_esign(data: ESignCreateRequest):
+    """전자서명 요청 생성"""
+    doc = {
+        "id": str(uuid4()),
+        "title": data.title,
+        "content": data.content,
+        "signer_name": data.signer_name,
+        "signer_email": data.signer_email,
+        "lawyer_name": data.lawyer_name,
+        "status": "pending",  # pending, signed, expired
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "signed_at": None,
+        "signature_data": None,
+    }
+    ESIGN_DB.append(doc)
+    return {"message": "서명 요청이 생성되었습니다.", "esign": doc}
+
+@app.get("/api/esign/{esign_id}")
+async def get_esign(esign_id: str):
+    """서명 문서 조회"""
+    doc = next((d for d in ESIGN_DB if d["id"] == esign_id), None)
+    if not doc:
+        raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
+    return doc
+
+@app.post("/api/esign/{esign_id}/sign")
+async def sign_document(esign_id: str, data: ESignSignRequest):
+    """전자서명 완료"""
+    doc = next((d for d in ESIGN_DB if d["id"] == esign_id), None)
+    if not doc:
+        raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
+    if doc["status"] == "signed":
+        raise HTTPException(status_code=400, detail="이미 서명된 문서입니다.")
+    
+    doc["status"] = "signed"
+    doc["signed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    doc["signature_data"] = data.signature_data or f"[전자서명: {data.signer_name}]"
+    
+    return {"message": "서명이 완료되었습니다.", "esign": doc}
+
+@app.get("/api/esign")
+async def list_esigns():
+    """모든 서명 문서 목록"""
+    return sorted(ESIGN_DB, key=lambda x: x.get("created_at", ""), reverse=True)
+
 def get_online_lawyers():
     from chat import presence_manager  # type: ignore
     online = []

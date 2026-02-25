@@ -120,6 +120,7 @@ export default function LawyerMenu() {
                 { label: "상담 관리 (CRM)", href: "/lawyer/consultations", icon: ChatBubbleLeftRightIcon },
                 { label: "채팅 상담내역", href: "/lawyer/chats", icon: ChatBubbleOvalLeftEllipsisIcon },
                 { label: "캘린더", href: "/lawyer/dashboard/calendar", icon: CalendarDaysIcon },
+                { label: "전자서명", href: "/lawyer/dashboard/esign", icon: DocumentTextIcon },
             ],
         },
         {
