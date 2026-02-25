@@ -1185,14 +1185,31 @@ async def add_client_message(matter_id: str, data: ClientMessageRequest):
 # --- Document Automation (문서 자동화) ---
 
 DOC_TEMPLATES = {
-    "complaint": {"name": "소장", "desc": "민사소송 소장"},
-    "answer": {"name": "답변서", "desc": "피고 답변서"},
-    "brief": {"name": "준비서면", "desc": "변론 준비서면"},
-    "payment_order": {"name": "지급명령신청서", "desc": "지급명령 신청서"},
-    "power_of_attorney": {"name": "위임장", "desc": "소송 위임장"},
-    "settlement": {"name": "합의서", "desc": "분쟁 합의서"},
-    "demand_letter": {"name": "내용증명", "desc": "내용증명 우편"},
+    "complaint": {"name": "소장", "desc": "민사소송 소장", "file": "complaint.txt"},
+    "answer": {"name": "답변서", "desc": "피고 답변서", "file": "answer.txt"},
+    "brief": {"name": "준비서면", "desc": "변론 준비서면", "file": "brief.txt"},
+    "payment_order": {"name": "지급명령신청서", "desc": "지급명령 신청", "file": "payment_order.txt"},
+    "power_of_attorney": {"name": "위임장", "desc": "소송 위임장", "file": "power_of_attorney.txt"},
+    "settlement": {"name": "합의서", "desc": "분쟁 합의서", "file": "settlement.txt"},
+    "demand_letter": {"name": "내용증명", "desc": "내용증명 우편", "file": "demand_letter.txt"},
+    "provisional_attachment": {"name": "가압류신청서", "desc": "부동산/채권 가압류", "file": "provisional_attachment.txt"},
+    "criminal_complaint": {"name": "고소장", "desc": "형사 고소장", "file": "criminal_complaint.txt"},
+    "statement": {"name": "진술서", "desc": "사실 진술서", "file": "statement.txt"},
+    "retainer_agreement": {"name": "수임계약서", "desc": "법률사무 위임계약", "file": "retainer_agreement.txt"},
+    "appeal": {"name": "항소장", "desc": "항소 제기", "file": "appeal.txt"},
+    "provisional_injunction": {"name": "가처분신청서", "desc": "처분금지 가처분", "file": "provisional_injunction.txt"},
 }
+
+import pathlib as _pathlib  # type: ignore
+_TEMPLATE_DIR = _pathlib.Path(__file__).parent / "templates"
+
+def _load_template(filename: str) -> str:
+    """templates/ 폴더에서 양식 파일을 로드합니다."""
+    try:
+        return (_TEMPLATE_DIR / filename).read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
 
 class DocGenerateRequest(BaseModel):
     doc_type: str  # complaint, answer, brief, etc.
@@ -1231,364 +1248,34 @@ async def generate_document(data: DocGenerateRequest):
 사건개요: {matter.get('description', '')}
 """
     
-    # 문서 유형별 실제 양식 기반 상세 프롬프트
-    FORMAT_GUIDES = {
-        "complaint": """
-[소장 양식 — 실제 대한민국 법원 제출 양식 준수]
-
-반드시 아래 구조대로 작성:
-
-                    소       장
-
-원  고  {plaintiff} (주민등록번호: )
-        주소:
-        연락처:
-        
-피  고  {defendant} (주민등록번호: )
-        주소:
-        연락처:
-
-{claim_amount}원 청구 사건
-
-                    청 구 취 지
-
-1. 피고는 원고에게 금 {claim_amount}원 및 이에 대하여 이 사건 소장 부본 송달 다음날부터 다 갚는 날까지 연 12%의 비율에 의한 금원을 지급하라.
-2. 소송비용은 피고가 부담한다.
-3. 제1항은 가집행할 수 있다.
-라는 판결을 구합니다.
-
-                    청 구 원 인
-
-제1항. 당사자의 관계
-(당사자 관계 설명)
-
-제2항. 사건의 경위
-(시간순서로 사건 발생 경위를 구체적으로 기술)
-
-제3항. 피고의 법적 책임
-(민법 제750조 불법행위, 제390조 채무불이행 등 근거 법률 조항 명시)
-
-제4항. 손해배상액의 산정
-가. 재산적 손해: 금 ○○원
-나. 정신적 손해(위자료): 금 ○○원
-다. 합계: 금 {claim_amount}원
-
-제5항. 결론
-(따라서 청구취지 기재와 같은 판결을 구합니다)
-
-                    입 증 방 법
-
-1. 갑 제1호증    (증거명)
-2. 갑 제2호증    (증거명)
-3. 갑 제3호증    (증거명)
-
-                    첨 부 서 류
-
-1. 위 입증방법 각 1통
-2. 소장 부본 1통
-3. 송달료 납부서 1통
-
-  20__년 __월 __일
-
-                        원고 {plaintiff} (서명 또는 날인)
-
-{court} 귀중
-""",
-        "answer": """
-[답변서 양식 — 실제 법원 답변서 양식 준수]
-
-반드시 아래 구조대로 작성:
-
-                    답  변  서
-
-사건   {case_number}
-원고   {plaintiff}
-피고   {defendant}
-
-위 사건에 관하여 피고는 다음과 같이 답변합니다.
-
-                    청구취지에 대한 답변
-
-1. 원고의 청구를 기각한다.
-2. 소송비용은 원고가 부담한다.
-라는 판결을 구합니다.
-
-                    청구원인에 대한 인부
-
-제1항. 인정하는 부분
-(원고 주장 중 인정하는 사실관계)
-
-제2항. 부인하는 부분
-(원고 주장 중 부인하는 사실관계와 그 이유)
-
-제3항. 부지하는 부분
-(알지 못하는 사실)
-
-                    피고의 주장
-
-제1항. 사실관계
-(피고 측에서 본 사건의 경위)
-
-제2항. 법적 항변
-가. 원고의 청구권 부존재 (근거 법률 조항)
-나. 소멸시효 항변 (해당 시)
-다. 과실상계 주장 (해당 시)
-
-제3항. 결론
-(따라서 원고의 청구는 이유 없어 기각되어야 합니다)
-
-                    입 증 방 법
-
-1. 을 제1호증    (증거명)
-2. 을 제2호증    (증거명)
-
-                    첨 부 서 류
-
-1. 위 입증방법 각 1통
-2. 답변서 부본 1통
-
-  20__년 __월 __일
-
-                        피고 {defendant} (서명 또는 날인)
-
-{court} 귀중
-""",
-        "brief": """
-[준비서면 양식 — 실제 법원 준비서면 양식 준수]
-
-반드시 아래 구조대로 작성:
-
-                    준 비 서 면
-
-사건   {case_number}
-원고   {plaintiff}
-피고   {defendant}
-
-위 사건에 관하여 (원고/피고)는 다음과 같이 변론을 준비합니다.
-
-                    제1. 전회 변론에 대한 의견
-
-(이전 변론기일에서 상대방이 제출한 서면이나 주장에 대한 반박)
-
-                    제2. 사실관계의 보충
-
-가. (추가 사실관계 1)
-나. (추가 사실관계 2)
-다. (추가 사실관계 3)
-
-                    제3. 법적 쟁점에 대한 주장
-
-가. 쟁점 1: (쟁점 제목)
-   (1) 관련 법률: (민법 제○○조, 판례 2023다○○○○ 등)
-   (2) 주장: (구체적 법적 논증)
-   (3) 소결: (따라서~)
-
-나. 쟁점 2: (쟁점 제목)
-   (1) 관련 법률:
-   (2) 주장:
-   (3) 소결:
-
-                    제4. 추가 입증방법
-
-1. 갑(을) 제○호증    (증거명)
-2. 갑(을) 제○호증    (증거명)
-
-                    제5. 결론
-
-(이상의 사유로 (원고/피고)의 청구/항변은 정당하므로 이를 인용/기각하여 주시기 바랍니다.)
-
-  20__년 __월 __일
-
-                        (원고/피고) {plaintiff} (서명 또는 날인)
-                        (소송대리인 변호사 ○○○)
-
-{court} 귀중
-""",
-        "payment_order": """
-[지급명령신청서 양식 — 실제 법원 양식 준수]
-
-                지 급 명 령 신 청 서
-
-채권자(신청인)  {plaintiff}
-              주소:
-              연락처:
-
-채무자(상대방)  {defendant}
-              주소:
-              연락처:
-
-                    청 구 취 지
-
-채무자는 채권자에게 금 {claim_amount}원 및 이에 대하여 이 사건 지급명령 정본 송달 다음날부터 다 갚는 날까지 연 12%의 비율에 의한 금원을 지급하라.
-라는 지급명령을 구합니다.
-
-                    청 구 원 인
-
-제1항. 당사자의 관계
-(채권·채무 발생 원인 관계)
-
-제2항. 채권 발생 원인
-가. 발생일: 20__년 __월 __일
-나. 발생원인: (대여금/물품대금/용역대금/임금 등)
-다. 금액: 금 {claim_amount}원
-
-제3항. 이행 청구 및 불이행
-(변제기 도래, 이행 최고 등)
-
-                    첨 부 서 류
-
-1. 채권증서 사본 1통 (계약서, 약정서, 차용증 등)
-2. 지급명령신청서 부본 1통
-3. 송달료 납부서 1통
-
-  20__년 __월 __일
-
-                        채권자 {plaintiff} (서명 또는 날인)
-
-{court} 귀중
-""",
-        "power_of_attorney": """
-[위임장 양식 — 실제 소송위임장 양식 준수]
-
-                    소 송 위 임 장
-
-위임인(원고/피고)
-    성명: {plaintiff}
-    주민등록번호:
-    주소:
-    전화번호:
-
-수임인(변호사)
-    성명:
-    사무소: 
-    등록번호:
-
-위 위임인은 아래 사건에 관한 일체의 소송행위(민사소송법 제90조에 규정된 특별수권사항 포함)를 수임인에게 위임합니다.
-
-                    위 임 사 항
-
-1. 소의 제기, 응소, 반소의 제기
-2. 소의 취하, 화해, 청구의 포기·인낙
-3. 상소의 제기 및 취하
-4. 복대리인의 선임
-5. 강제집행 및 가압류·가처분에 관한 행위
-6. 담보의 취소에 관한 동의, 담보취소 신청
-7. 기타 소송에 필요한 일체의 행위
-
-                    사 건 의 표 시
-
-사건번호: {case_number}
-사건명:
-관할법원: {court}
-상대방: {defendant}
-
-  20__년 __월 __일
-
-                        위임인 {plaintiff}  (인)
-
-                        주민등록번호 뒷자리: _______
-""",
-        "settlement": """
-[합의서 양식 — 실무 분쟁 합의서 양식 준수]
-
-                    합   의   서
-
-                    당 사 자
-
-  갑(이하 "갑"이라 한다): {plaintiff}
-    주소:
-    주민등록번호:
-
-  을(이하 "을"이라 한다): {defendant}
-    주소:
-    주민등록번호:
-
-갑과 을은 아래 사건에 관하여 다음과 같이 합의한다.
-
-                    전   문
-
-갑과 을 사이에 발생한 (분쟁 내용)에 관하여 원만한 해결을 위해 아래와 같이 합의한다.
-
-제1조 (합의금) 을은 갑에게 합의금으로 금 {claim_amount}원을 아래 일정에 따라 지급한다.
-    ① 1차: 20__년 __월 __일까지 금 ○○원
-    ② 잔금: 20__년 __월 __일까지 금 ○○원
-
-제2조 (지급방법) 을은 갑이 지정하는 아래 계좌로 송금한다.
-    은행명:
-    계좌번호:
-    예금주:
-
-제3조 (권리 포기) 갑은 을로부터 합의금 전액을 수령함과 동시에 본 건과 관련하여 을에 대한 민·형사상 일체의 이의를 제기하지 않는다.
-
-제4조 (비밀유지) 갑과 을은 본 합의의 내용을 제3자에게 누설하지 않는다.
-
-제5조 (기타) 본 합의서에 명시되지 않은 사항은 관계 법령 및 관례에 따른다.
-
-위 합의 내용을 확인하고, 이를 증명하기 위하여 합의서 2통을 작성하여 갑과 을이 각각 서명·날인 후 1통씩 보관한다.
-
-  20__년 __월 __일
-
-    갑: {plaintiff}                (서명 또는 날인)
-    을: {defendant}                (서명 또는 날인)
-""",
-        "demand_letter": """
-[내용증명 양식 — 우체국 내용증명 양식 준수]
-
-                    내 용 증 명
-
-발신인(통고인)
-    성명: {plaintiff}
-    주소:
-    연락처:
-
-수신인(피통고인)  
-    성명: {defendant}
-    주소:
-
-                    통   고   서
-
-1. 귀하의 안녕을 기원합니다.
-
-2. 본 통고인은 귀하에 대하여 아래와 같은 사유로 본 내용증명을 발송합니다.
-
-3. (사건의 경위 — 시간순서로 구체적 기술)
-
-4. (법적 근거 — 관련 법률 조항 명시)
-   민법 제○○조에 의하면 ~
-
-5. 따라서 본 통고인은 귀하에게 아래 사항을 이행할 것을 최고합니다.
-
-                    최 고 사 항
-
-가. 금 {claim_amount}원을 본 내용증명 도달일로부터 7일 이내에 아래 계좌로 지급할 것
-    - 은행: 
-    - 계좌번호:
-    - 예금주: {plaintiff}
-
-나. (기타 이행 요청 사항)
-
-6. 만일 위 기간 내에 이행하지 않을 경우 부득이 민·형사상 법적 조치를 취할 것임을 통고합니다.
-
-  20__년 __월 __일
-
-                        발신인 {plaintiff}  (서명 또는 날인)
-
-※ 본 내용증명은 우체국 내용증명 제도(우편법 시행규칙 제25조)에 의거하여 발송되었습니다.
-""",
-    }
+    # 템플릿 파일에서 양식 로드 (templates/ 폴더)
+    template_file = template.get("file", "")
+    file_template = _load_template(template_file) if template_file else ""
     
-    format_guide = FORMAT_GUIDES.get(data.doc_type, "")
-    format_guide = format_guide.replace("{plaintiff}", data.plaintiff_name or "○○○")
-    format_guide = format_guide.replace("{defendant}", data.defendant_name or "○○○")
-    format_guide = format_guide.replace("{court}", data.court or "○○지방법원")
-    format_guide = format_guide.replace("{case_number}", data.case_number or "20__가단_____")
-    format_guide = format_guide.replace("{claim_amount}", data.claim_amount or "○○○○")
+    # 변수 치환
+    format_guide = file_template
+    format_guide = format_guide.replace("[원고 성명]", data.plaintiff_name or "○○○")
+    format_guide = format_guide.replace("[피고 성명]", data.defendant_name or "○○○")
+    format_guide = format_guide.replace("[채권자 성명]", data.plaintiff_name or "○○○")
+    format_guide = format_guide.replace("[채무자 성명]", data.defendant_name or "○○○")
+    format_guide = format_guide.replace("[고소인 성명]", data.plaintiff_name or "○○○")
+    format_guide = format_guide.replace("[피고소인 성명]", data.defendant_name or "○○○")
+    format_guide = format_guide.replace("[갑 성명]", data.plaintiff_name or "○○○")
+    format_guide = format_guide.replace("[을 성명]", data.defendant_name or "○○○")
+    format_guide = format_guide.replace("[발신인 성명]", data.plaintiff_name or "○○○")
+    format_guide = format_guide.replace("[수신인 성명]", data.defendant_name or "○○○")
+    format_guide = format_guide.replace("[위임인 성명]", data.plaintiff_name or "○○○")
+    format_guide = format_guide.replace("[의뢰인 성명]", data.plaintiff_name or "○○○")
+    format_guide = format_guide.replace("[법원명]", data.court or "○○지방법원")
+    format_guide = format_guide.replace("[청구금액]", data.claim_amount or "○○○○")
+    format_guide = format_guide.replace("[합의금액]", data.claim_amount or "○○○○")
 
     prompt = f"""당신은 대한민국 15년차 전문 변호사입니다.
-아래 '양식 가이드'의 구조를 **완전히 따르되**, 사건 내용에 맞게 구체적으로 작성하세요.
-괄호 안의 설명문은 실제 내용으로 대체하고, ○○ 같은 빈칸은 사건 내용에 맞게 채우세요.
+아래 '표준 양식'의 구조를 **완전히 따르되**, 대괄호([]) 안의 설명문은 사건 내용에 맞게 구체적으로 작성하세요.
 
+=== 표준 양식 ===
 {format_guide}
+
 
 === 사건 내용 ===
 {data.case_summary or '(미입력)'}

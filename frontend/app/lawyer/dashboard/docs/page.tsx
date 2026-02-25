@@ -26,10 +26,16 @@ const DOC_TYPES = [
     { key: "complaint", name: "소장", icon: "📄", desc: "민사소송 소장" },
     { key: "answer", name: "답변서", icon: "📋", desc: "피고 답변서" },
     { key: "brief", name: "준비서면", icon: "📝", desc: "변론 준비서면" },
-    { key: "payment_order", name: "지급명령신청서", icon: "💰", desc: "지급명령 신청" },
+    { key: "payment_order", name: "지급명령", icon: "💰", desc: "지급명령 신청" },
     { key: "power_of_attorney", name: "위임장", icon: "🤝", desc: "소송 위임장" },
     { key: "settlement", name: "합의서", icon: "🤲", desc: "분쟁 합의서" },
     { key: "demand_letter", name: "내용증명", icon: "✉️", desc: "내용증명 우편" },
+    { key: "provisional_attachment", name: "가압류", icon: "🔒", desc: "부동산/채권 가압류" },
+    { key: "criminal_complaint", name: "고소장", icon: "⚖️", desc: "형사 고소장" },
+    { key: "statement", name: "진술서", icon: "🗣️", desc: "사실 진술서" },
+    { key: "retainer_agreement", name: "수임계약서", icon: "📑", desc: "법률사무 위임계약" },
+    { key: "appeal", name: "항소장", icon: "🔼", desc: "항소 제기" },
+    { key: "provisional_injunction", name: "가처분", icon: "🚫", desc: "처분금지 가처분" },
 ];
 
 export default function DocAutomationPage() {
@@ -126,8 +132,8 @@ export default function DocAutomationPage() {
                                 key={doc.key}
                                 onClick={() => setSelectedType(doc.key)}
                                 className={`p-4 rounded-2xl border-2 text-center transition-all hover:scale-[1.02] active:scale-[0.98] ${selectedType === doc.key
-                                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg shadow-blue-100 dark:shadow-none"
-                                        : "border-zinc-100 dark:border-zinc-800 hover:border-zinc-200"
+                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg shadow-blue-100 dark:shadow-none"
+                                    : "border-zinc-100 dark:border-zinc-800 hover:border-zinc-200"
                                     }`}
                             >
                                 <span className="text-2xl block mb-2">{doc.icon}</span>
