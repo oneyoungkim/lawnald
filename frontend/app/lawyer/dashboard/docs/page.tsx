@@ -167,33 +167,195 @@ export default function DocAutomationPage() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <InputField label="원고 (신청인)" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
-                            <InputField label="피고 (상대방)" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <InputField label="관할법원" value={form.court} onChange={v => setForm({ ...form, court: v })} placeholder="서울중앙지방법원" />
-                            <InputField label="사건번호" value={form.case_number} onChange={v => setForm({ ...form, case_number: v })} placeholder="2024가단12345" />
-                        </div>
-                        <div className="mb-4">
-                            <InputField label="청구금액" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="50,000,000원" />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">사건 내용</label>
-                            <textarea
-                                className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-                                value={form.case_summary}
-                                onChange={e => setForm({ ...form, case_summary: e.target.value })}
-                                placeholder="사건의 경위와 청구 원인을 상세히 기술하세요..."
-                            />
-                        </div>
+                        {/* Dynamic fields per document type */}
+                        {(() => {
+                            const t = selectedType;
+                            // Civil litigation: 소장, 답변서, 준비서면, 항소장
+                            if (["complaint", "answer", "brief", "appeal"].includes(t)) return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label={t === "answer" ? "원고" : "원고 (의뢰인)"} value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label={t === "answer" ? "피고 (의뢰인)" : "피고 (상대방)"} value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="관할법원" value={form.court} onChange={v => setForm({ ...form, court: v })} placeholder="서울중앙지방법원" />
+                                        <InputField label="사건번호" value={form.case_number} onChange={v => setForm({ ...form, case_number: v })} placeholder="2024가단12345" />
+                                    </div>
+                                    {t !== "brief" && <div className="mb-4"><InputField label="청구금액" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="50,000,000원" /></div>}
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{t === "complaint" ? "청구원인 (사건 경위)" : t === "answer" ? "답변 및 항변 내용" : t === "brief" ? "변론할 쟁점 및 주장" : "항소 이유"}</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder={t === "complaint" ? "사건의 경위와 청구 원인을 시간순서로 상세히 기술하세요..." : t === "answer" ? "원고 주장에 대한 인부, 항변 및 반박 내용..." : t === "brief" ? "이전 변론에 대한 의견, 쟁점별 법적 논증..." : "제1심 판결의 사실오인, 법리오해 등 항소 이유..."} />
+                                    </div>
+                                </>
+                            );
+                            // Payment: 지급명령
+                            if (t === "payment_order") return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="채권자 (신청인)" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="채무자 (상대방)" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="관할법원" value={form.court} onChange={v => setForm({ ...form, court: v })} placeholder="서울중앙지방법원" />
+                                        <InputField label="청구금액" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="50,000,000원" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">채권 발생 원인</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="대여금/물품대금/용역대금 등 채권 발생 경위, 변제기, 독촉 경위 등..." />
+                                    </div>
+                                </>
+                            );
+                            // Power of attorney: 위임장
+                            if (t === "power_of_attorney") return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="위임인 (의뢰인)" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="상대방" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="관할법원" value={form.court} onChange={v => setForm({ ...form, court: v })} placeholder="서울중앙지방법원" />
+                                        <InputField label="사건번호" value={form.case_number} onChange={v => setForm({ ...form, case_number: v })} placeholder="2024가단12345" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">위임사무 내용</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="소송 사건명, 위임 범위 등..." />
+                                    </div>
+                                </>
+                            );
+                            // Settlement: 합의서
+                            if (t === "settlement") return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="갑 (피해자/채권자)" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="을 (가해자/채무자)" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <InputField label="합의금액" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="10,000,000원" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">분쟁 내용 및 합의 조건</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="분쟁 발생 경위, 합의 조건 (분할 지급, 고소 취하 여부 등)..." />
+                                    </div>
+                                </>
+                            );
+                            // Demand letter: 내용증명
+                            if (t === "demand_letter") return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="발신인 (통고인)" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="수신인 (피통고인)" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <InputField label="최고 금액" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="50,000,000원" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">통고 사유 및 최고 내용</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="사건의 경위, 법적 근거, 이행 최고 사항 (7일 이내 지급 등)..." />
+                                    </div>
+                                </>
+                            );
+                            // Provisional attachment/injunction: 가압류, 가처분
+                            if (["provisional_attachment", "provisional_injunction"].includes(t)) return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="채권자 (신청인)" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="채무자 (피신청인)" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="관할법원" value={form.court} onChange={v => setForm({ ...form, court: v })} placeholder="서울중앙지방법원" />
+                                        <InputField label="피보전채권액" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="100,000,000원" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{t === "provisional_attachment" ? "피보전권리 및 보전 필요성" : "피보전권리 및 처분금지 사유"}</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder={t === "provisional_attachment" ? "채권 발생 원인, 채무자의 재산은닉/처분 우려, 목적물 표시..." : "피보전권리(소유권/임차권 등), 처분 우려 사유, 목적물 표시..."} />
+                                    </div>
+                                </>
+                            );
+                            // Criminal complaint: 고소장
+                            if (t === "criminal_complaint") return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="고소인" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="피고소인" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순 (불상인 경우 '성명불상')" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <InputField label="혐의 죄명" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="사기 / 횡령 / 배임 / 폭행 / 명예훼손 등" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">고소 사실 (범행 경위 및 피해 내용)</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[150px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="범행일시, 장소, 경위를 시간순서로 기술하세요.&#10;예: 2024년 3월 피고소인은 투자금 명목으로 5천만원을 편취하였고..." />
+                                    </div>
+                                </>
+                            );
+                            // Statement: 진술서
+                            if (t === "statement") return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="진술인" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="관련 사건 당사자" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="해당 사건의 원고/피고" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="관할법원" value={form.court} onChange={v => setForm({ ...form, court: v })} placeholder="서울중앙지방법원" />
+                                        <InputField label="사건번호" value={form.case_number} onChange={v => setForm({ ...form, case_number: v })} placeholder="2024가단12345" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">진술 내용 (목격·경험 사실)</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[150px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="직접 경험하거나 목격한 사실을 시간순서로 상세히 기술하세요..." />
+                                    </div>
+                                </>
+                            );
+                            // Retainer: 수임계약서
+                            if (t === "retainer_agreement") return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="의뢰인 (갑)" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="수임변호사 (을)" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="변호사 김변" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="착수금" value={form.claim_amount} onChange={v => setForm({ ...form, claim_amount: v })} placeholder="3,000,000원" />
+                                        <InputField label="성공보수 (비율 또는 금액)" value={form.case_number} onChange={v => setForm({ ...form, case_number: v })} placeholder="경제적 이익의 10% 또는 5,000,000원" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <InputField label="관할법원" value={form.court} onChange={v => setForm({ ...form, court: v })} placeholder="서울중앙지방법원" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">위임사무 내용</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="소송/자문/형사변호 등 위임사무 유형, 사건 내용, 상대방 등..." />
+                                    </div>
+                                </>
+                            );
+                            // Default fallback
+                            return (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <InputField label="당사자 1" value={form.plaintiff_name} onChange={v => setForm({ ...form, plaintiff_name: v })} placeholder="홍길동" />
+                                        <InputField label="당사자 2" value={form.defendant_name} onChange={v => setForm({ ...form, defendant_name: v })} placeholder="김갑순" />
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">내용</label>
+                                        <textarea className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" value={form.case_summary} onChange={e => setForm({ ...form, case_summary: e.target.value })}
+                                            placeholder="상세 내용을 입력하세요..." />
+                                    </div>
+                                </>
+                            );
+                        })()}
+
                         <div className="mb-4">
                             <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">추가 지시사항</label>
                             <textarea
                                 className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 outline-none focus:ring-2 focus:ring-blue-500 min-h-[60px]"
                                 value={form.additional_info}
                                 onChange={e => setForm({ ...form, additional_info: e.target.value })}
-                                placeholder="예: 손해배상청구 포함, 가처분도 함께 신청 등..."
+                                placeholder="예: 손해배상청구 포함, 특정 법률 조항 인용 등..."
                             />
                         </div>
 
