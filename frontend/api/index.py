@@ -923,7 +923,130 @@ def delete_lead(lead_id: str):
     return {"message": "리드가 삭제되었습니다."}
 
 
-# --- Client Dashboard APIs ---
+# --- Matter Management (사건 관리) ---
+
+MATTERS_DB: list = []
+try:
+    _matters_loaded = sb_load_all("matters")
+    if _matters_loaded:
+        MATTERS_DB = _matters_loaded
+        print(f"📊 사건 복원 (Supabase): {len(MATTERS_DB)}건")
+except Exception:
+    pass
+
+class MatterCreateRequest(BaseModel):
+    title: str
+    case_number: str = ""
+    court: str = ""
+    client_name: str = ""
+    opponent_name: str = ""
+    area: str = ""
+    description: str = ""
+    status: str = "active"  # active, on_hold, closed, archived
+
+class MatterUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    case_number: Optional[str] = None
+    court: Optional[str] = None
+    client_name: Optional[str] = None
+    opponent_name: Optional[str] = None
+    area: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    next_deadline: Optional[str] = None
+    next_deadline_label: Optional[str] = None
+
+class MatterActivityRequest(BaseModel):
+    type: str = "note"  # note, deadline, document, event
+    content: str
+    date: Optional[str] = None
+
+@app.post("/api/matters")
+async def create_matter(data: MatterCreateRequest):
+    """새 사건/안건 등록"""
+    # lawyer_id from header or body
+    matter = {
+        "id": str(uuid4()),
+        "title": data.title,
+        "case_number": data.case_number,
+        "court": data.court,
+        "client_name": data.client_name,
+        "opponent_name": data.opponent_name,
+        "area": data.area,
+        "description": data.description,
+        "status": data.status,
+        "next_deadline": "",
+        "next_deadline_label": "",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "activities": [],
+    }
+    MATTERS_DB.append(matter)
+    sb_append("matters", matter)
+    return {"message": "사건이 등록되었습니다.", "matter": matter}
+
+@app.get("/api/matters")
+async def list_matters(status: Optional[str] = None):
+    """사건 목록 조회"""
+    matters = MATTERS_DB
+    if status:
+        matters = [m for m in matters if m.get("status") == status]
+    return sorted(matters, key=lambda x: x.get("updated_at", ""), reverse=True)
+
+@app.get("/api/matters/{matter_id}")
+async def get_matter(matter_id: str):
+    """사건 상세 조회"""
+    matter = next((m for m in MATTERS_DB if m["id"] == matter_id), None)
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+    return matter
+
+@app.patch("/api/matters/{matter_id}")
+async def update_matter(matter_id: str, data: MatterUpdateRequest):
+    """사건 정보 업데이트"""
+    matter = next((m for m in MATTERS_DB if m["id"] == matter_id), None)
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+    
+    for key, value in data.dict(exclude_none=True).items():  # type: ignore
+        matter[key] = value
+    matter["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sb_update("matters", matter)
+    return {"message": "사건이 업데이트되었습니다.", "matter": matter}
+
+@app.delete("/api/matters/{matter_id}")
+async def delete_matter(matter_id: str):
+    """사건 삭제"""
+    global MATTERS_DB
+    matter = next((m for m in MATTERS_DB if m["id"] == matter_id), None)
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+    MATTERS_DB = [m for m in MATTERS_DB if m["id"] != matter_id]
+    return {"message": "사건이 삭제되었습니다."}
+
+@app.post("/api/matters/{matter_id}/activities")
+async def add_matter_activity(matter_id: str, data: MatterActivityRequest):
+    """사건에 활동 기록 추가 (메모, 기일, 문서 등)"""
+    matter = next((m for m in MATTERS_DB if m["id"] == matter_id), None)
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+    
+    activity = {
+        "id": str(uuid4()),
+        "type": data.type,
+        "content": data.content,
+        "date": data.date or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    
+    if "activities" not in matter:
+        matter["activities"] = []
+    matter["activities"].insert(0, activity)
+    matter["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sb_update("matters", matter)
+    return {"message": "활동이 추가되었습니다.", "activity": activity}
+
+
 
 # 의뢰인 사연 저장 DB
 CLIENT_STORIES_DB = sb_load_all("client_stories") or []
