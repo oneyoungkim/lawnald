@@ -853,7 +853,14 @@ def create_lead(lawyer_id: str, request: LeadCreateRequest):
         "lawyer_id": lawyer_id,
         "case_summary": request.case_summary,
         "contact_type": request.contact_type,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "stage": "inquiry",  # 칸반 단계: inquiry → consultation → contract → retained → closed
+        "client_name": "",
+        "client_phone": "",
+        "client_email": "",
+        "notes": "",
+        "priority": "normal",  # low, normal, high, urgent
+        "area": "",
     }
     
     LEADS_DB.append(lead)
@@ -868,6 +875,53 @@ def get_lawyer_leads(lawyer_id: str):
     leads = sb_load_by_fk("leads", "lawyer_id", lawyer_id) or [l for l in LEADS_DB if l["lawyer_id"] == lawyer_id]
     leads.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     return leads
+
+class LeadUpdateRequest(BaseModel):
+    stage: Optional[str] = None
+    client_name: Optional[str] = None
+    client_phone: Optional[str] = None
+    client_email: Optional[str] = None
+    notes: Optional[str] = None
+    priority: Optional[str] = None
+    area: Optional[str] = None
+    case_summary: Optional[str] = None
+
+@app.patch("/api/leads/{lead_id}")
+def update_lead(lead_id: str, data: LeadUpdateRequest):
+    """리드 정보 업데이트 (단계 변경, 메모 추가 등)"""
+    lead = next((l for l in LEADS_DB if l["id"] == lead_id), None)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    update_fields = data.dict(exclude_none=True)  # type: ignore
+    for key, value in update_fields.items():
+        lead[key] = value
+    
+    # Supabase 동기화
+    sb_update("leads", lead)
+    
+    return {"message": "리드가 업데이트되었습니다.", "lead": lead}
+
+@app.delete("/api/leads/{lead_id}")
+def delete_lead(lead_id: str):
+    """리드 삭제"""
+    global LEADS_DB
+    lead = next((l for l in LEADS_DB if l["id"] == lead_id), None)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    LEADS_DB = [l for l in LEADS_DB if l["id"] != lead_id]
+    # Note: Supabase에서도 삭제
+    try:
+        from supabase_client import get_supabase  # type: ignore
+        sb = get_supabase()
+        if sb:
+            sb.table("leads").delete().eq("id", lead_id).execute()
+    except Exception:
+        pass
+    
+    return {"message": "리드가 삭제되었습니다."}
+
 
 # --- Client Dashboard APIs ---
 
