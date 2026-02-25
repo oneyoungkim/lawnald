@@ -2783,6 +2783,186 @@ async def publish_case(data: CasePublishRequest):
     return {"message": "승소사례가 성공적으로 접수되었습니다. 관리자 승인 후 게시됩니다.", "case_id": case_id}
 
 
+# --- Bulk Upload / Publish ---
+
+@app.post("/api/cases/bulk-upload")
+async def bulk_upload_pdfs(files: List[UploadFile] = File(...)):
+    """
+    최대 20개 판결문 PDF를 일괄 업로드하고 AI 분석.
+    각 파일을 순차 처리하여 결과를 반환합니다.
+    """
+    if len(files) > 20:
+        raise HTTPException(status_code=400, detail="최대 20개 파일까지 업로드 가능합니다.")
+    
+    if len(files) == 0:
+        raise HTTPException(status_code=400, detail="파일을 선택해주세요.")
+    
+    results = []
+    temp_dir = "temp_uploads"
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    for idx, file in enumerate(files):
+        result = {
+            "index": idx,
+            "filename": file.filename,
+            "status": "pending",
+            "error": None,
+            "data": None
+        }
+        
+        if not file.filename.lower().endswith('.pdf'):
+            result["status"] = "error"
+            result["error"] = f"PDF 파일만 업로드 가능합니다: {file.filename}"
+            results.append(result)
+            continue
+        
+        temp_path = os.path.join(temp_dir, f"{uuid4()}_{file.filename}")
+        
+        try:
+            # Save temp file
+            with open(temp_path, "wb") as buffer:
+                content = await file.read()
+                buffer.write(content)
+            
+            # Extract text
+            raw_text = case_parser.extract_text_from_pdf(temp_path)
+            text_len = len(raw_text.strip()) if raw_text else 0
+            
+            # File hash for dedup
+            with open(temp_path, "rb") as f:
+                file_bytes = f.read()
+                file_hash = hashlib.sha256(file_bytes).hexdigest()
+            
+            # Dedup check
+            is_duplicate = False
+            for lawyer in LAWYERS_DB:
+                for item in lawyer.get("content_items", []):
+                    if item.get("file_hash") == file_hash:
+                        is_duplicate = True
+                        break
+                if is_duplicate:
+                    break
+            
+            if is_duplicate:
+                result["status"] = "duplicate"
+                result["error"] = "이미 등록된 판결문입니다."
+                results.append(result)
+                continue
+            
+            # Parse with AI
+            if not raw_text or text_len < 100:
+                structured_data = case_parser.parse_from_images(temp_path)
+            else:
+                structured_data = case_parser.parse_structure(raw_text)
+            
+            # Anonymize full text
+            structured_data["full_text"] = case_parser.anonymize_additional(structured_data["full_text"])
+            structured_data["file_hash"] = file_hash
+            
+            result["status"] = "success"
+            result["data"] = structured_data
+            
+        except Exception as e:
+            result["status"] = "error"
+            result["error"] = str(e)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        
+        results.append(result)
+    
+    success_count = sum(1 for r in results if r["status"] == "success")
+    error_count = sum(1 for r in results if r["status"] == "error")
+    duplicate_count = sum(1 for r in results if r["status"] == "duplicate")
+    warning_count = sum(1 for r in results if r["status"] == "success" and r["data"] and r["data"].get("has_name_warning"))
+    
+    return {
+        "total": len(files),
+        "success": success_count,
+        "errors": error_count,
+        "duplicates": duplicate_count,
+        "name_warnings": warning_count,
+        "results": results
+    }
+
+
+class BulkPublishItem(BaseModel):
+    case_number: str = ""
+    court: str = ""
+    title: str
+    story: str  # client_story
+    full_text: str = ""
+    file_hash: str
+    ai_tags: str = ""
+    summary: str = ""
+    key_takeaways: Optional[List[str]] = []
+
+class BulkPublishRequest(BaseModel):
+    lawyer_id: str
+    cases: List[BulkPublishItem]
+
+@app.post("/api/cases/bulk-publish")
+async def bulk_publish_cases(data: BulkPublishRequest):
+    """
+    여러 건의 승소사례를 일괄 게시 요청.
+    """
+    lawyer = next((l for l in LAWYERS_DB if l["id"] == data.lawyer_id), None)
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer not found.")
+    
+    if "content_items" not in lawyer:
+        lawyer["content_items"] = []
+    
+    published = []
+    skipped = []
+    
+    for case_item in data.cases:
+        # Dedup check
+        is_dup = any(
+            item.get("file_hash") == case_item.file_hash
+            for item in lawyer.get("content_items", [])
+        )
+        if is_dup:
+            skipped.append({"title": case_item.title, "reason": "중복"})
+            continue
+        
+        case_id = str(uuid4())
+        slug = seo_generator.generate_slug(case_item.title)
+        
+        pending_item = {
+            "id": case_id,
+            "type": "case",
+            "title": case_item.title,
+            "summary": case_item.summary or case_item.story[:100] + "...",
+            "content": case_item.story,
+            "full_text": case_item.full_text,
+            "case_number": case_item.case_number,
+            "court": case_item.court,
+            "topic_tags": [t.strip() for t in case_item.ai_tags.split(",") if t.strip()],
+            "file_hash": case_item.file_hash,
+            "status": "pending",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "slug": slug,
+            "lawyer_id": data.lawyer_id,
+            "lawyer_name": lawyer["name"],
+            "key_takeaways": case_item.key_takeaways or []
+        }
+        
+        lawyer["content_items"].insert(0, pending_item)
+        published.append({"title": case_item.title, "case_id": case_id})
+    
+    save_lawyers_db(LAWYERS_DB)
+    
+    return {
+        "message": f"{len(published)}건의 승소사례가 접수되었습니다.",
+        "published": len(published),
+        "skipped": len(skipped),
+        "details": published,
+        "skipped_details": skipped
+    }
+
+
 @app.get("/api/admin/drafts")
 async def get_admin_drafts():
     """
