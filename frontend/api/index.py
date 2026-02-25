@@ -1096,6 +1096,92 @@ def get_client_chats(client_id: str):
     chats.sort(key=lambda x: x["last_updated"], reverse=True)
     return chats
 
+# --- Client Portal APIs ---
+
+class ClientMessageRequest(BaseModel):
+    client_name: str
+    content: str
+
+@app.get("/api/client/{client_id}/portal")
+async def get_client_portal(client_id: str):
+    """
+    클라이언트 포털: 의뢰인의 사건 현황, 활동 기록, 변호사 정보를 조회합니다.
+    client_id에 연결된 사건(matter)을 client_name 매칭으로 조회합니다.
+    """
+    # 의뢰인 정보 가져오기
+    client = None
+    for c in CLIENTS_DB:
+        if c.get("id") == client_id:
+            client = c
+            break
+    
+    client_name = client.get("name", "") if client else ""
+    client_email = client.get("email", "") if client else ""
+    
+    # 사건 목록 (client_name 매칭)
+    client_matters = []
+    for m in MATTERS_DB:
+        if (m.get("client_name", "").strip() and 
+            (m.get("client_name", "").strip() == client_name.strip() or
+             client_email in str(m))):
+            # 민감 정보 필터링 (description은 요약만)
+            safe_matter = {
+                "id": m["id"],
+                "title": m.get("title", ""),
+                "case_number": m.get("case_number", ""),
+                "court": m.get("court", ""),
+                "area": m.get("area", ""),
+                "status": m.get("status", "active"),
+                "next_deadline": m.get("next_deadline", ""),
+                "next_deadline_label": m.get("next_deadline_label", ""),
+                "created_at": m.get("created_at", ""),
+                "updated_at": m.get("updated_at", ""),
+                "activities": [
+                    a for a in m.get("activities", [])
+                    if a.get("type") in ("event", "deadline", "client_message")
+                ],
+            }
+            client_matters.append(safe_matter)
+    
+    # 리드 정보 (상담 상태)
+    client_leads = []
+    for l in LEADS_DB:
+        if client_name and l.get("client_name", "").strip() == client_name.strip():
+            client_leads.append({
+                "stage": l.get("stage", "inquiry"),
+                "area": l.get("area", ""),
+                "timestamp": l.get("timestamp", ""),
+            })
+    
+    return {
+        "client_name": client_name,
+        "matters": sorted(client_matters, key=lambda x: x.get("updated_at", ""), reverse=True),
+        "leads": client_leads,
+        "total_matters": len(client_matters),
+    }
+
+@app.post("/api/matters/{matter_id}/client-messages")
+async def add_client_message(matter_id: str, data: ClientMessageRequest):
+    """의뢰인이 사건에 메시지를 남깁니다."""
+    matter = next((m for m in MATTERS_DB if m["id"] == matter_id), None)
+    if not matter:
+        raise HTTPException(status_code=404, detail="Matter not found")
+    
+    activity = {
+        "id": str(uuid4()),
+        "type": "client_message",
+        "content": f"[의뢰인 {data.client_name}] {data.content}",
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    if "activities" not in matter:
+        matter["activities"] = []
+    matter["activities"].insert(0, activity)
+    matter["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sb_update("matters", matter)
+    return {"message": "메시지가 전달되었습니다.", "activity": activity}
+
+
 @app.get("/api/lawyers/online")
 def get_online_lawyers():
     from chat import presence_manager  # type: ignore
