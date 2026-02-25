@@ -143,6 +143,16 @@ def load_blog_db() -> List[dict]:
 
     if sb_posts is not None:
         if len(sb_posts) > 0:
+            # 로컬 데이터가 더 풍부하면 Supabase 업데이트 (이전 배포에서 요약본이 동기화된 경우 복구)
+            if len(json_posts) > 0:
+                sb_total = sum(len(p.get("content", "")) for p in sb_posts)
+                local_total = sum(len(p.get("content", "")) for p in json_posts)
+                if local_total > sb_total * 1.5:
+                    print(f"🔄 로컬 데이터가 더 풍부함 (Supabase: {sb_total}자 vs 로컬: {local_total}자) → 강제 동기화")
+                    for post in json_posts:
+                        _upsert_to_supabase(post)
+                    print(f"✅ 전체 내용 Supabase 동기화 완료 ({len(json_posts)}개)")
+                    return json_posts
             print(f"✅ Supabase에서 블로그 글 {len(sb_posts)}개 로드")
             return sb_posts
         # Supabase 연결됐지만 비어있고, JSON에 데이터가 있으면 동기화
