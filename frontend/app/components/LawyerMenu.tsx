@@ -27,6 +27,9 @@ import {
     MegaphoneIcon,
     WrenchScrewdriverIcon,
     ArchiveBoxIcon,
+    CalendarDaysIcon,
+    MagnifyingGlassIcon,
+    RectangleGroupIcon,
 } from "@heroicons/react/24/outline";
 
 interface MenuGroup {
@@ -103,6 +106,7 @@ export default function LawyerMenu() {
                 { label: "AI 사건 워크스페이스", href: "/lawyer/dashboard/workspace", icon: CpuChipIcon },
                 { label: "AI 내용증명 생성기", href: "/lawyer/dashboard/document", icon: SparklesIcon },
                 { label: "갑호증 PDF 병합", href: "/lawyer/dashboard/evidence", icon: DocumentArrowUpIcon },
+                { label: "유사 판례 검색", href: "/lawyer/dashboard/cases/search", icon: MagnifyingGlassIcon },
             ],
         },
         {
@@ -110,8 +114,11 @@ export default function LawyerMenu() {
             label: "의뢰인 상담 관리",
             icon: BriefcaseIcon,
             items: [
+                { label: "잠재 고객 칸반", href: "/lawyer/dashboard/crm", icon: RectangleGroupIcon },
+                { label: "사건 관리", href: "/lawyer/dashboard/matters", icon: FolderOpenIcon },
                 { label: "상담 관리 (CRM)", href: "/lawyer/consultations", icon: ChatBubbleLeftRightIcon },
                 { label: "채팅 상담내역", href: "/lawyer/chats", icon: ChatBubbleOvalLeftEllipsisIcon },
+                { label: "캘린더", href: "/lawyer/dashboard/calendar", icon: CalendarDaysIcon },
             ],
         },
         {
@@ -199,8 +206,8 @@ export default function LawyerMenu() {
                         href="/lawyer/dashboard"
                         onClick={() => !isDesktop && setIsOpen(false)}
                         className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-[13px] ${pathname === "/lawyer/dashboard"
-                                ? "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white font-semibold"
-                                : "text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium"
+                            ? "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white font-semibold"
+                            : "text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium"
                             }`}
                     >
                         <HomeIcon className="w-4 h-4 flex-shrink-0" />
@@ -220,8 +227,8 @@ export default function LawyerMenu() {
                                 <button
                                     onClick={() => toggleGroup(group.key)}
                                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-[13px] ${isGroupActive
-                                            ? "text-gray-900 dark:text-white font-semibold"
-                                            : "text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium"
+                                        ? "text-gray-900 dark:text-white font-semibold"
+                                        : "text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium"
                                         }`}
                                 >
                                     <group.icon className="w-4 h-4 flex-shrink-0" />
@@ -249,8 +256,8 @@ export default function LawyerMenu() {
                                                     href={item.href}
                                                     onClick={() => !isDesktop && setIsOpen(false)}
                                                     className={`flex items-center gap-2.5 px-3 py-[7px] rounded-md transition-all text-[12.5px] border-l-2 ${active
-                                                            ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-zinc-800/80 text-gray-900 dark:text-white font-semibold"
-                                                            : "border-transparent text-gray-500 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300 hover:bg-gray-50/60 dark:hover:bg-zinc-800/40 font-medium"
+                                                        ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-zinc-800/80 text-gray-900 dark:text-white font-semibold"
+                                                        : "border-transparent text-gray-500 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300 hover:bg-gray-50/60 dark:hover:bg-zinc-800/40 font-medium"
                                                         }`}
                                                 >
                                                     <item.icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? "text-gray-700 dark:text-zinc-300" : "text-gray-400 dark:text-zinc-600"
@@ -272,8 +279,8 @@ export default function LawyerMenu() {
                         href="/lawyer/profile"
                         onClick={() => !isDesktop && setIsOpen(false)}
                         className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-[13px] ${pathname.startsWith("/lawyer/profile")
-                                ? "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white font-semibold"
-                                : "text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium"
+                            ? "bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white font-semibold"
+                            : "text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium"
                             }`}
                     >
                         <Cog6ToothIcon className="w-4 h-4 flex-shrink-0" />
