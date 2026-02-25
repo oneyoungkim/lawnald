@@ -102,15 +102,22 @@ def _delete_from_supabase(post_id: str) -> bool:
 
 
 # --- JSON 파일 폴백 ---
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_BUNDLED_JSON = os.path.join(_SCRIPT_DIR, "admin_blog_db.json")
 ADMIN_BLOG_FILE = os.path.join("/tmp" if os.path.exists("/tmp") else ".", "admin_blog_db.json")
 
 def _load_from_json() -> List[dict]:
-    if os.path.exists(ADMIN_BLOG_FILE):
-        try:
-            with open(ADMIN_BLOG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    # 1. 번들 파일 먼저 확인 (Vercel 배포 시 코드와 함께 포함)
+    for path in [_BUNDLED_JSON, ADMIN_BLOG_FILE]:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if data:
+                    print(f"📁 JSON 로드: {path} ({len(data)}개)")
+                    return data
+            except Exception:
+                pass
     return []
 
 def _save_to_json(db: list):
