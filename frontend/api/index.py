@@ -1419,37 +1419,60 @@ async def generate_ai_draft(data: AIDraftRequest):
         raise HTTPException(status_code=500, detail=f"초안 생성 실패: {str(e)}")
 
 
-# --- E-Signature (전자서명) ---
+# --- E-Signature (전자서명) — Premium ---
 
 ESIGN_DB: list = []
+try:
+    _esign_loaded = sb_load_all("esign_docs")
+    if _esign_loaded:
+        ESIGN_DB = _esign_loaded
+        print(f"📊 전자서명 복원 (Supabase): {len(ESIGN_DB)}건")
+except Exception:
+    pass
 
 class ESignCreateRequest(BaseModel):
-    title: str  # 예: "수임계약서", "위임장"
-    content: str  # 서명할 문서 내용
+    title: str
+    content: str
     signer_name: str
     signer_email: str = ""
+    signer_phone: str = ""
     lawyer_name: str = ""
+    verification_method: str = "email"  # email | kakao | pass
 
 class ESignSignRequest(BaseModel):
     signer_name: str
-    signature_data: str = ""  # base64 서명 이미지 또는 텍스트
+    signature_data: str = ""
 
 @app.post("/api/esign/create")
-async def create_esign(data: ESignCreateRequest):
-    """전자서명 요청 생성"""
+async def create_esign(data: ESignCreateRequest, request: StarletteRequest):
+    """전자서명 요청 생성 (감사추적 포함)"""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+    user_agent = request.headers.get("user-agent", "unknown")[:120]
+
     doc = {
         "id": str(uuid4()),
         "title": data.title,
         "content": data.content,
         "signer_name": data.signer_name,
         "signer_email": data.signer_email,
+        "signer_phone": data.signer_phone,
         "lawyer_name": data.lawyer_name,
-        "status": "pending",  # pending, signed, expired
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "verification_method": data.verification_method,
+        "status": "sent",  # sent → viewed → signed
+        "created_at": now_str,
         "signed_at": None,
+        "viewed_at": None,
         "signature_data": None,
+        "audit_log": [
+            {"action": "created", "timestamp": now_str, "ip": client_ip, "user_agent": user_agent}
+        ],
     }
     ESIGN_DB.append(doc)
+    try:
+        sb_append("esign_docs", doc)
+    except Exception:
+        pass
     return {"message": "서명 요청이 생성되었습니다.", "esign": doc}
 
 @app.get("/api/esign/{esign_id}")
@@ -1460,19 +1483,49 @@ async def get_esign(esign_id: str):
         raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
     return doc
 
+@app.post("/api/esign/{esign_id}/view")
+async def view_esign(esign_id: str, request: StarletteRequest):
+    """서명자가 문서를 열었을 때 — 상태를 viewed로 변경"""
+    doc = next((d for d in ESIGN_DB if d["id"] == esign_id), None)
+    if not doc:
+        raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+    if doc["status"] == "sent":
+        doc["status"] = "viewed"
+        doc["viewed_at"] = now_str
+    if not isinstance(doc.get("audit_log"), list):
+        doc["audit_log"] = []
+    doc["audit_log"].append({"action": "viewed", "timestamp": now_str, "ip": client_ip, "user_agent": request.headers.get("user-agent", "")[:120]})
+    try:
+        sb_update("esign_docs", doc["id"], doc)
+    except Exception:
+        pass
+    return {"message": "열람 기록이 저장되었습니다.", "esign": doc}
+
 @app.post("/api/esign/{esign_id}/sign")
-async def sign_document(esign_id: str, data: ESignSignRequest):
-    """전자서명 완료"""
+async def sign_document(esign_id: str, data: ESignSignRequest, request: StarletteRequest):
+    """전자서명 완료 (감사추적 포함)"""
     doc = next((d for d in ESIGN_DB if d["id"] == esign_id), None)
     if not doc:
         raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
     if doc["status"] == "signed":
         raise HTTPException(status_code=400, detail="이미 서명된 문서입니다.")
-    
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+    user_agent = request.headers.get("user-agent", "unknown")[:120]
+
     doc["status"] = "signed"
-    doc["signed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    doc["signed_at"] = now_str
     doc["signature_data"] = data.signature_data or f"[전자서명: {data.signer_name}]"
-    
+    if not isinstance(doc.get("audit_log"), list):
+        doc["audit_log"] = []
+    doc["audit_log"].append({"action": "signed", "timestamp": now_str, "ip": client_ip, "user_agent": user_agent})
+    try:
+        sb_update("esign_docs", doc["id"], doc)
+    except Exception:
+        pass
     return {"message": "서명이 완료되었습니다.", "esign": doc}
 
 @app.get("/api/esign")

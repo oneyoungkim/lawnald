@@ -7,5 +7,14 @@
     "page_views": 339,
     "total_duration": 0.0,
     "session_count": 0
+  },
+  "2026-02-25": {
+    "visitors": 1,
+    "unique_ips_list": [
+      "127.0.0.1"
+    ],
+    "page_views": 50,
+    "total_duration": 1800.0,
+    "session_count": 1
   }
 }
