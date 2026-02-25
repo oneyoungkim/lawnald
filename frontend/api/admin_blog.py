@@ -124,14 +124,25 @@ def _save_to_json(db: list):
 # --- 초기 로드 ---
 def load_blog_db() -> List[dict]:
     # Supabase 우선
-    posts = _load_from_supabase()
-    if posts is not None:
-        print(f"✅ Supabase에서 블로그 글 {len(posts)}개 로드")
-        return posts
-    # JSON 폴백
-    posts = _load_from_json()
-    print(f"📁 JSON에서 블로그 글 {len(posts)}개 로드")
-    return posts
+    sb_posts = _load_from_supabase()
+    json_posts = _load_from_json()
+
+    if sb_posts is not None:
+        if len(sb_posts) > 0:
+            print(f"✅ Supabase에서 블로그 글 {len(sb_posts)}개 로드")
+            return sb_posts
+        # Supabase 연결됐지만 비어있고, JSON에 데이터가 있으면 동기화
+        if len(json_posts) > 0:
+            print(f"🔄 Supabase 비어있음 → JSON {len(json_posts)}개 글 동기화 시작")
+            for post in json_posts:
+                _upsert_to_supabase(post)
+            print(f"✅ JSON → Supabase 동기화 완료 ({len(json_posts)}개)")
+            return json_posts
+        return []
+
+    # Supabase 연결 실패 → JSON 폴백
+    print(f"📁 JSON에서 블로그 글 {len(json_posts)}개 로드")
+    return json_posts
 
 def save_blog_db(db: list):
     """전체 DB를 JSON에 저장 (폴백용)"""
