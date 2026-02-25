@@ -1182,7 +1182,108 @@ async def add_client_message(matter_id: str, data: ClientMessageRequest):
     return {"message": "메시지가 전달되었습니다.", "activity": activity}
 
 
-@app.get("/api/lawyers/online")
+# --- Document Automation (문서 자동화) ---
+
+DOC_TEMPLATES = {
+    "complaint": {"name": "소장", "desc": "민사소송 소장"},
+    "answer": {"name": "답변서", "desc": "피고 답변서"},
+    "brief": {"name": "준비서면", "desc": "변론 준비서면"},
+    "payment_order": {"name": "지급명령신청서", "desc": "지급명령 신청서"},
+    "power_of_attorney": {"name": "위임장", "desc": "소송 위임장"},
+    "settlement": {"name": "합의서", "desc": "분쟁 합의서"},
+    "demand_letter": {"name": "내용증명", "desc": "내용증명 우편"},
+}
+
+class DocGenerateRequest(BaseModel):
+    doc_type: str  # complaint, answer, brief, etc.
+    matter_id: Optional[str] = None
+    plaintiff_name: str = ""
+    defendant_name: str = ""
+    court: str = ""
+    case_number: str = ""
+    case_summary: str = ""
+    claim_amount: str = ""
+    additional_info: str = ""
+
+@app.get("/api/documents/templates")
+async def get_doc_templates():
+    """사용 가능한 문서 템플릿 목록"""
+    return DOC_TEMPLATES
+
+@app.post("/api/documents/generate")
+async def generate_document(data: DocGenerateRequest):
+    """AI 기반 법률 문서 자동 생성"""
+    template = DOC_TEMPLATES.get(data.doc_type)
+    if not template:
+        raise HTTPException(status_code=400, detail=f"Unknown document type: {data.doc_type}")
+    
+    # Matter 데이터 자동 채우기
+    matter_info = ""
+    if data.matter_id:
+        matter = next((m for m in MATTERS_DB if m["id"] == data.matter_id), None)
+        if matter:
+            matter_info = f"""
+사건명: {matter.get('title', '')}
+사건번호: {matter.get('case_number', '')}
+법원: {matter.get('court', '')}
+의뢰인: {matter.get('client_name', '')}
+상대방: {matter.get('opponent_name', '')}
+사건개요: {matter.get('description', '')}
+"""
+    
+    prompt = f"""당신은 대한민국 변호사입니다. 아래 정보를 기반으로 [{template['name']}]을 작성해 주세요.
+
+문서 유형: {template['name']} ({template['desc']})
+
+=== 당사자 정보 ===
+원고(신청인): {data.plaintiff_name or '(미입력)'}
+피고(상대방): {data.defendant_name or '(미입력)'}
+관할법원: {data.court or '(미입력)'}
+사건번호: {data.case_number or '(미입력)'}
+
+=== 사건 내용 ===
+{data.case_summary or '(미입력)'}
+
+{f'=== 사건 관리 데이터 ===' + matter_info if matter_info else ''}
+
+=== 청구금액 ===
+{data.claim_amount or '(해당없음)'}
+
+=== 추가 지시사항 ===
+{data.additional_info or '없음'}
+
+=== 작성 규칙 ===
+1. 대한민국 법원 양식에 맞는 정식 서면 형식으로 작성
+2. 항목별 번호 매기기 (제1항, 제2항...)
+3. 법적 근거 조항 명시
+4. 전문적이고 격식있는 법률 용어 사용
+5. 날짜란, 서명란 포함
+6. 실제 법원 제출 가능한 수준의 완성도
+"""
+
+    try:
+        import openai  # type: ignore
+        client_ai = openai.OpenAI()
+        response = client_ai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "당신은 15년 경력의 대한민국 전문 변호사입니다. 법원 제출용 서면을 작성합니다."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=4000,
+        )
+        content = response.choices[0].message.content  # type: ignore
+        return {
+            "doc_type": data.doc_type,
+            "template_name": template["name"],
+            "content": content,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"문서 생성 실패: {str(e)}")
+
+
 def get_online_lawyers():
     from chat import presence_manager  # type: ignore
     online = []
