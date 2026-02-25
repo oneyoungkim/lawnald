@@ -1252,6 +1252,20 @@ async def generate_document(data: DocGenerateRequest):
     template_file = template.get("file", "")
     file_template = _load_template(template_file) if template_file else ""
     
+    # 파일 로드 실패 시 기본 프롬프트 fallback
+    if not file_template.strip():
+        file_template = f"""[{template['name']}] 양식
+
+문서 유형: {template['name']} ({template['desc']})
+
+당사자 1: [원고 성명]
+당사자 2: [피고 성명]
+관할법원: [법원명]
+
+대한민국 법원 표준 양식에 따라 정식 서면으로 작성하세요.
+항목별 번호 매기기, 법적 근거 조항 명시, 날짜란·서명란 포함.
+"""
+
     # 변수 치환
     format_guide = file_template
     format_guide = format_guide.replace("[원고 성명]", data.plaintiff_name or "○○○")
