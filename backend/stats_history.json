@@ -13,8 +13,8 @@
     "unique_ips_list": [
       "127.0.0.1"
     ],
-    "page_views": 50,
-    "total_duration": 1800.0,
-    "session_count": 1
+    "page_views": 100,
+    "total_duration": 3600.0,
+    "session_count": 2
   }
 }

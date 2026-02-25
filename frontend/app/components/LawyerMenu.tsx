@@ -104,7 +104,6 @@ export default function LawyerMenu() {
             icon: WrenchScrewdriverIcon,
             items: [
                 { label: "AI 사건 워크스페이스", href: "/lawyer/dashboard/workspace", icon: CpuChipIcon },
-                { label: "AI 내용증명 생성기", href: "/lawyer/dashboard/document", icon: SparklesIcon },
                 { label: "갑호증 PDF 병합", href: "/lawyer/dashboard/evidence", icon: DocumentArrowUpIcon },
                 { label: "유사 판례 검색", href: "/lawyer/dashboard/cases/search", icon: MagnifyingGlassIcon },
                 { label: "문서 자동화", href: "/lawyer/dashboard/docs", icon: DocumentTextIcon },
