@@ -2780,6 +2780,23 @@ async def publish_case(data: CasePublishRequest):
     lawyer["content_items"].insert(0, pending_item)
     save_lawyers_db(LAWYERS_DB)
     
+    # RAG: 임베딩 저장
+    try:
+        from case_embeddings import store_case_embedding  # type: ignore
+        store_case_embedding(
+            case_id=case_id,
+            lawyer_id=data.lawyer_id,
+            lawyer_name=lawyer["name"],
+            title=data.title,
+            content=data.story,
+            case_number=data.case_number,
+            court=data.court,
+            ai_tags=data.ai_tags,
+            file_hash=data.file_hash
+        )
+    except Exception as e:
+        print(f"⚠️ RAG 임베딩 저장 실패 (무시): {e}")
+    
     return {"message": "승소사례가 성공적으로 접수되었습니다. 관리자 승인 후 게시됩니다.", "case_id": case_id}
 
 
@@ -2951,6 +2968,23 @@ async def bulk_publish_cases(data: BulkPublishRequest):
         
         lawyer["content_items"].insert(0, pending_item)
         published.append({"title": case_item.title, "case_id": case_id})
+        
+        # RAG: 임베딩 저장
+        try:
+            from case_embeddings import store_case_embedding  # type: ignore
+            store_case_embedding(
+                case_id=case_id,
+                lawyer_id=data.lawyer_id,
+                lawyer_name=lawyer["name"],
+                title=case_item.title,
+                content=case_item.story,
+                case_number=case_item.case_number,
+                court=case_item.court,
+                ai_tags=case_item.ai_tags,
+                file_hash=case_item.file_hash
+            )
+        except Exception as e:
+            print(f"⚠️ RAG 임베딩 저장 실패 (무시): {e}")
     
     save_lawyers_db(LAWYERS_DB)
     
@@ -2961,6 +2995,48 @@ async def bulk_publish_cases(data: BulkPublishRequest):
         "details": published,
         "skipped_details": skipped
     }
+
+
+# --- RAG: 유사 판례 검색 ---
+
+class SimilarCaseQuery(BaseModel):
+    query: str
+    top_k: int = 5
+    threshold: float = 0.5
+
+@app.post("/api/cases/search-similar")
+async def search_similar_cases_api(data: SimilarCaseQuery):
+    """
+    사건개요를 입력하면 유사 판례를 검색합니다.
+    벡터 유사도(코사인) 기반 검색.
+    """
+    if not data.query.strip():
+        raise HTTPException(status_code=400, detail="검색어를 입력해주세요.")
+    
+    try:
+        from case_embeddings import search_similar_cases  # type: ignore
+        results = search_similar_cases(
+            query=data.query,
+            top_k=data.top_k,
+            threshold=data.threshold
+        )
+        return {
+            "query": data.query,
+            "count": len(results),
+            "results": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"검색 실패: {str(e)}")
+
+
+@app.get("/api/cases/rag-setup")
+async def get_rag_setup_sql():
+    """RAG 테이블 설정 SQL을 반환합니다."""
+    try:
+        from case_embeddings import SETUP_SQL  # type: ignore
+        return {"sql": SETUP_SQL}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/admin/drafts")
